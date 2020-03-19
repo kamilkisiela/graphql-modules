@@ -16,9 +16,8 @@
   },
   "devDependencies": {
     "@types/jest": "25.1.4",
-    "bob-the-bundler": "0.3.3",
+    "bob-the-bundler": "0.3.4",
     "graphql": "14.6.0",
-    "graphql-tools": "4.0.7",
     "jest": "25.1.0",
     "prettier": "1.19.1",
     "reflect-metadata": "0.1.13",

@@ -1,6 +1,7 @@
-import { Resolvers, ModuleConfig } from "./types";
+import { ModuleConfig } from "./module";
+import { Resolvers } from "./types";
 import { ModuleMetadata } from "./metadata";
-import { AppContext } from "./../app/types";
+import { AppContext } from "./../app/app";
 import { Single, ResolveFn, ID } from "./../shared/types";
 import {
   ExtraResolverError,

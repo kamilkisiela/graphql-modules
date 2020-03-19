@@ -1,5 +1,5 @@
 import { DocumentNode, parse, Source } from "graphql";
-import { ModuleConfig } from "./types";
+import { ModuleConfig } from "./module";
 
 export function createTypeDefs(config: ModuleConfig): DocumentNode[] {
   const typeDefs = Array.isArray(config.typeDefs)

@@ -1,5 +1,5 @@
 import { ReflectiveInjector } from "injection-js";
-import { ResolvedModule, ModuleConfig, ModuleContext } from "./types";
+import { GraphQLModule, ModuleConfig, ModuleContext } from "./module";
 import { metadataFactory } from "./metadata";
 import { createResolvers } from "./resolvers";
 import { createTypeDefs } from "./type-defs";
@@ -10,7 +10,7 @@ export interface ModuleFactoryInput {
 
 export type ContextFactory = (input: ModuleFactoryInput) => ModuleContext;
 
-export function moduleFactory(config: ModuleConfig): ResolvedModule {
+export function moduleFactory(config: ModuleConfig): GraphQLModule {
   // here we should do calculations and things related to typeDefs and resolvers
 
   const typeDefs = createTypeDefs(config);

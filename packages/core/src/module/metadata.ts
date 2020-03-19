@@ -1,21 +1,18 @@
 import { DocumentNode, visit } from "graphql";
-import { ModuleConfig } from "./types";
+import { ModuleConfig } from "./module";
 import { ToDo, ID } from "../shared/types";
 
 export type TypesRegistry = Record<string, string[]>; // we need unions and other kinds
 
-export type Implements = {
-  types?: TypesRegistry;
-};
-
-export type Extends = {
+export type Registry = {
   types?: TypesRegistry;
 };
 
 export interface ModuleMetadata {
   id: ID;
-  implements?: Implements;
-  extends?: Extends;
+  typeDefs: DocumentNode[];
+  implements?: Registry;
+  extends?: Registry;
   provides?: ToDo;
   dirname?: string;
 }
@@ -50,6 +47,7 @@ export function metadataFactory(
 
   return {
     id: config.id,
+    typeDefs,
     implements: {
       types: implementedTypes
     },

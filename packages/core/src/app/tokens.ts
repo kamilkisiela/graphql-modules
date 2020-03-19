@@ -1,5 +1,5 @@
 import { InjectionToken } from "injection-js";
-import { ModulesMap } from "./types";
+import { ModulesMap } from "./app";
 import { ID } from "../shared/types";
 
 export const REQUEST = new InjectionToken("request");
