@@ -1,16 +1,18 @@
 import { ReflectiveInjector, Injector, Provider } from "injection-js";
-import { GraphQLModule } from "../module/module";
 import { AppConfig, ModulesMap, AppContext } from "./types";
+import { REQUEST, RESPONSE, MODULES, MODULE_ID } from "./tokens";
+import { GraphQLModule } from "../module/module";
 import { ID } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
-import { REQUEST, RESPONSE, MODULES, MODULE_ID } from "./tokens";
+import { flatten, isDefined } from "../shared/utils";
 
 export function createApp(config: AppConfig) {
   // here, we create GraphQL Schema and merge typeDefs + resolvers
-
   const modules = createModuleMap(config.modules);
 
   return {
+    typeDefs: flatten(config.modules.map(mod => mod.typeDefs)),
+    resolvers: config.modules.map(mod => mod.resolvers).filter(isDefined),
     context({
       request,
       response

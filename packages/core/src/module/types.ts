@@ -2,7 +2,6 @@ import { DocumentNode } from "graphql";
 import { Injector, Provider } from "injection-js";
 import { Plural, ID, Single } from "../shared/types";
 import { ModuleMetadata } from "./metadata";
-import { ContextFactory } from "./factory";
 
 export type TypeDefs = Plural<DocumentNode | string>;
 export type Resolvers = Plural<Record<string, any>>;
@@ -26,7 +25,6 @@ export interface ResolvedModule {
   resolvers?: Single<Resolvers>;
   providers?: Provider[];
   metadata: ModuleMetadata;
-  context: ContextFactory;
 }
 
 // Kamil: somehow our build process doesn't emit `types.d.ts` file, this should force it...

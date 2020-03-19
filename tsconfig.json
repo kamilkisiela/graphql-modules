@@ -11,6 +11,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
     "importHelpers": true,
     "lib": ["esnext"],
 
