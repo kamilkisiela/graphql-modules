@@ -1,7 +1,6 @@
 {
-  "name": "@graphql-modules/core",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@kamilkisiela/graphql",
+  "version": "0.0.0-experimental.0",
   "author": "Kamil Kisiela",
   "license": "MIT",
   "sideEffects": false,

@@ -10,3 +10,4 @@ export * from "./module/metadata";
 export * from "./shared/di";
 
 // testing
+export * from "./testing/test-module";

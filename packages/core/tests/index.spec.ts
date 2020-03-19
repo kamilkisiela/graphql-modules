@@ -2,10 +2,11 @@ import "reflect-metadata";
 import {
   createApp,
   createModule,
-  Injector,
   Injectable,
   InjectionToken,
-  MODULE_ID
+  MODULE_ID,
+  ModuleContext,
+  testModule
 } from "@graphql-modules/core";
 import { makeExecutableSchema } from "graphql-tools";
 import { execute, parse } from "graphql";
@@ -61,7 +62,7 @@ test("basic", async () => {
         useValue: "local"
       }
     ],
-    typeDefs: `
+    typeDefs: /* GraphQL */ `
       type Post {
         title: String!
       }
@@ -72,7 +73,7 @@ test("basic", async () => {
     `,
     resolvers: {
       Query: {
-        posts(_parent: {}, __args: {}, { injector }: { injector: Injector }) {
+        posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
           spies.posts.moduleId(injector.get(MODULE_ID));
           spies.posts.test(injector.get(Test));
 
@@ -89,7 +90,7 @@ test("basic", async () => {
   const commentsModule = createModule({
     id: "comments",
     providers: [Comments],
-    typeDefs: `
+    typeDefs: /* GraphQL */ `
       type Comment {
         text: String!
       }
@@ -100,11 +101,7 @@ test("basic", async () => {
     `,
     resolvers: {
       Query: {
-        comments(
-          _parent: {},
-          __args: {},
-          { injector }: { injector: Injector }
-        ) {
+        comments(_parent: {}, __args: {}, { injector }: ModuleContext) {
           spies.comments.moduleId(injector.get(MODULE_ID));
           spies.comments.test(injector.get(Test));
 
@@ -163,4 +160,50 @@ test("basic", async () => {
   // Value of MODULE_ID according to module's resolver
   expect(spies.posts.moduleId).toHaveBeenCalledWith("posts");
   expect(spies.comments.moduleId).toHaveBeenCalledWith("comments");
+});
+
+test("testModule testing util", async () => {
+  const postsModule = createModule({
+    id: "posts",
+    providers: [Posts],
+    typeDefs: /* GraphQL */ `
+      type Post {
+        title: String!
+      }
+
+      extend type Query {
+        posts: [Post!]!
+      }
+    `,
+    resolvers: {
+      Query: {
+        posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
+          return injector.get(Posts).all();
+        }
+      },
+      Post: {
+        title: (title: any) => title
+      }
+    }
+  });
+
+  const mockedModule = testModule(postsModule);
+
+  const result = await execute({
+    schema: mockedModule.schema,
+    contextValue: mockedModule.context({ request: {}, response: {} }),
+    document: parse(/* GraphQL */ `
+      {
+        posts {
+          title
+        }
+      }
+    `)
+  });
+
+  // Should resolve data correctly
+  expect(result.errors).toBeUndefined();
+  expect(result.data).toEqual({
+    posts: posts.map(title => ({ title }))
+  });
 });
