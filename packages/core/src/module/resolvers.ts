@@ -125,7 +125,7 @@ function ensureImplements(metadata: ModuleMetadata) {
       const id = `"${name}.${field}"`;
 
       throw new ExtraResolverError(
-        `Resolver of ${id} type cannot be implemented`,
+        `Resolver of "${id}" type cannot be implemented`,
         `${id} is not defined`,
         useLocation({ dirname: metadata.dirname, id: metadata.id })
       );

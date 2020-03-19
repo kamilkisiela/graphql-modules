@@ -95,14 +95,14 @@ function createModuleMap(modules: GraphQLModule[]): ModulesMap {
       const location = module.metadata.dirname;
       const existingLocation = moduleMap.get(module.id)?.metadata.dirname;
 
-      const info = [`Module "${module.id}" already exists`];
+      const info = [];
 
       if (existingLocation) {
-        info.push(`Registered module located at: ${existingLocation}`);
+        info.push(`Already registered module located at: ${existingLocation}`);
       }
 
       if (location) {
-        info.push(`Module located at: ${location}`);
+        info.push(`Duplicated module located at: ${location}`);
       }
 
       throw new ModuleDuplicatedError(
