@@ -90,10 +90,7 @@ function wrapObjectResolver({
     return resolver(
       parent,
       args,
-      {
-        ...context,
-        ...context.ɵgetModuleContext(config.id)
-      },
+      context.ɵgetModuleContext(config.id, context),
       info
     );
   };

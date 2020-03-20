@@ -1,6 +1,6 @@
 import { DocumentNode, GraphQLSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-import { ReflectiveInjector, Injector, Provider } from "injection-js";
+import { ReflectiveInjector, Provider } from "injection-js";
 import { REQUEST, RESPONSE, MODULES, MODULE_ID } from "./tokens";
 import { GraphQLModule, ModuleContext } from "../module/module";
 import { Resolvers } from "../module/types";
@@ -23,11 +23,10 @@ export interface AppConfig {
 export type ModulesMap = Map<ID, GraphQLModule>;
 
 export interface AppContext {
-  ɵgetModuleContext(moduleId: ID): ModuleContext;
+  ɵgetModuleContext(moduleId: ID, context: any): ModuleContext;
 }
 
 export function createApp(config: AppConfig): GraphQLApp {
-  // here, we create GraphQL Schema and merge typeDefs + resolvers
   const modules = createModuleMap(config.modules);
 
   const typeDefs = flatten(config.modules.map(mod => mod.typeDefs));
@@ -35,8 +34,8 @@ export function createApp(config: AppConfig): GraphQLApp {
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
   return {
-    typeDefs: flatten(config.modules.map(mod => mod.typeDefs)),
-    resolvers: config.modules.map(mod => mod.resolvers).filter(isDefined),
+    typeDefs,
+    resolvers,
     schema,
     context({
       request,
@@ -62,25 +61,23 @@ export function createApp(config: AppConfig): GraphQLApp {
         )
       );
 
-      const moduleInjectors = new Map<ID, Injector>();
+      const contextCache: Record<ID, ModuleContext> = {};
 
       return {
-        ɵgetModuleContext(moduleId) {
-          if (!moduleInjectors.has(moduleId)) {
+        ɵgetModuleContext(moduleId, context) {
+          if (!contextCache[moduleId]) {
             const providers: Provider[] = (
               modules.get(moduleId)!.providers || []
             ).concat({ provide: MODULE_ID, useValue: moduleId });
 
-            moduleInjectors.set(
-              moduleId,
-              injector.resolveAndCreateChild(providers)
-            );
+            contextCache[moduleId] = {
+              ...context,
+              injector: injector.resolveAndCreateChild(providers),
+              moduleId
+            };
           }
 
-          return {
-            injector: moduleInjectors.get(moduleId)!,
-            moduleId
-          };
+          return contextCache[moduleId];
         }
       };
     }

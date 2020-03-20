@@ -11,8 +11,6 @@ export interface ModuleFactoryInput {
 export type ContextFactory = (input: ModuleFactoryInput) => ModuleContext;
 
 export function moduleFactory(config: ModuleConfig): GraphQLModule {
-  // here we should do calculations and things related to typeDefs and resolvers
-
   const typeDefs = createTypeDefs(config);
   const metadata = metadataFactory(typeDefs, config);
   const resolvers = createResolvers(config, metadata);

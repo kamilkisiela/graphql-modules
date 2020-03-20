@@ -3,11 +3,6 @@ import { compose, Middleware } from "../src/shared/middleware";
 function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms || 1));
 }
-
-// function isPromise(x: any): x is Promise<any> {
-//   return x && typeof x.then === "function";
-// }
-
 type Ctx = { arr: number[] };
 
 describe("Middleware", () => {
