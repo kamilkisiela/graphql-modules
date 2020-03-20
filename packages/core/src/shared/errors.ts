@@ -1,3 +1,5 @@
+import { ID } from "./types";
+
 export class ModuleDuplicatedError extends ExtendableBuiltin(Error) {
   constructor(message: string, ...rest: string[]) {
     super(composeMessage(message, ...rest));
@@ -22,7 +24,24 @@ export class ResolverDuplicatedError extends ExtendableBuiltin(Error) {
   }
 }
 
+export class ResolverInvalidError extends ExtendableBuiltin(Error) {
+  constructor(message: string, ...rest: string[]) {
+    super(composeMessage(message, ...rest));
+    this.name = this.constructor.name;
+    this.message = composeMessage(message, ...rest);
+  }
+}
+
 // helpers
+
+export function useLocation({ dirname, id }: { id: ID; dirname?: string }) {
+  return dirname
+    ? `Module "${id}" located at ${dirname}`
+    : [
+        `Module "${id}"`,
+        `Hint: pass __dirname to "dirname" option of your modules to get more insightful errors :)`
+      ].join("\n");
+}
 
 export function ExtendableBuiltin<T extends Function>(cls: T): T {
   function ExtendableBuiltin(this: any) {

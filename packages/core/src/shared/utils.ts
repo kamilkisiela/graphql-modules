@@ -3,5 +3,17 @@ export function flatten<T>(arr: T[]): T extends (infer A)[] ? A[] : T[] {
 }
 
 export function isDefined<T>(val: T | null | undefined): val is T {
-  return !!val;
+  return !isNil(val);
+}
+
+export function isNil<T>(val: T | null | undefined): val is null | undefined {
+  return val === null || typeof val === "undefined";
+}
+
+export function isPrimitive(
+  val: any
+): val is number | string | boolean | symbol | bigint {
+  return ["number", "string", "boolean", "symbol", "bigint"].includes(
+    typeof val
+  );
 }
