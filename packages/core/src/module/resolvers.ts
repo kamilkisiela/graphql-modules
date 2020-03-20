@@ -86,6 +86,7 @@ function wrapObjectResolver({
     context,
     info
   ) => {
+    // TODO: we can intercept resolvers here with try/catch and enhance errors with resolver's metadata
     return resolver(
       parent,
       args,
@@ -98,6 +99,8 @@ function wrapObjectResolver({
   };
 
   writeResolverMetadata(wrappedResolver, config);
+
+  return wrappedResolver;
 }
 
 function mergeResolvers(config: ModuleConfig): Single<Resolvers> {
