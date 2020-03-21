@@ -40,6 +40,6 @@ export function testModule(
 
   return createApp({
     ...(config || {}),
-    modules: [module]
+    modules: [module as any] // TODO: we should use a factory here
   });
 }

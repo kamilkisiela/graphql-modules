@@ -5,8 +5,8 @@ import {
   Injectable,
   InjectionToken,
   MODULE_ID,
-  ModuleContext,
-  testModule
+  ModuleContext
+  // testModule
 } from "@graphql-modules/core";
 import { makeExecutableSchema } from "graphql-tools";
 import { execute, parse } from "graphql";
@@ -162,48 +162,48 @@ test("basic", async () => {
   expect(spies.comments.moduleId).toHaveBeenCalledWith("comments");
 });
 
-test("testModule testing util", async () => {
-  const postsModule = createModule({
-    id: "posts",
-    providers: [Posts],
-    typeDefs: /* GraphQL */ `
-      type Post {
-        title: String!
-      }
+// test("testModule testing util", async () => {
+//   const postsModule = createModule({
+//     id: "posts",
+//     providers: [Posts],
+//     typeDefs: /* GraphQL */ `
+//       type Post {
+//         title: String!
+//       }
 
-      extend type Query {
-        posts: [Post!]!
-      }
-    `,
-    resolvers: {
-      Query: {
-        posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
-          return injector.get(Posts).all();
-        }
-      },
-      Post: {
-        title: (title: any) => title
-      }
-    }
-  });
+//       extend type Query {
+//         posts: [Post!]!
+//       }
+//     `,
+//     resolvers: {
+//       Query: {
+//         posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
+//           return injector.get(Posts).all();
+//         }
+//       },
+//       Post: {
+//         title: (title: any) => title
+//       }
+//     }
+//   });
 
-  const mockedModule = testModule(postsModule);
+//   const mockedModule = testModule(postsModule);
 
-  const result = await execute({
-    schema: mockedModule.schema,
-    contextValue: mockedModule.context({ request: {}, response: {} }),
-    document: parse(/* GraphQL */ `
-      {
-        posts {
-          title
-        }
-      }
-    `)
-  });
+//   const result = await execute({
+//     schema: mockedModule.schema,
+//     contextValue: mockedModule.context({ request: {}, response: {} }),
+//     document: parse(/* GraphQL */ `
+//       {
+//         posts {
+//           title
+//         }
+//       }
+//     `)
+//   });
 
-  // Should resolve data correctly
-  expect(result.errors).toBeUndefined();
-  expect(result.data).toEqual({
-    posts: posts.map(title => ({ title }))
-  });
-});
+//   // Should resolve data correctly
+//   expect(result.errors).toBeUndefined();
+//   expect(result.data).toEqual({
+//     posts: posts.map(title => ({ title }))
+//   });
+// });

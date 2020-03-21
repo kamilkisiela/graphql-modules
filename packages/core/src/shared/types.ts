@@ -20,4 +20,4 @@ export type ResolveFn<TContext> = (
 ) => any;
 
 // Kamil: somehow our build process doesn't emit `types.d.ts` file, this should force it...
-export {}
+export {};

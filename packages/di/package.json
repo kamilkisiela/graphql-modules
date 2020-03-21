@@ -1,5 +1,5 @@
 {
-  "name": "@kamilkisiela/graphql",
+  "name": "@kamilkisiela/di",
   "version": "0.0.0-experimental.1",
   "author": "Kamil Kisiela",
   "license": "MIT",
@@ -17,11 +17,8 @@
     "prebuild": "rm -rf dist",
     "build": "bob"
   },
-  "peerDependencies": {
-    "graphql": "^14.0.0"
-  },
   "dependencies": {
-    "graphql-tools": "4.0.7"
+    "dependency-graph": "0.9.0"
   },
   "publishConfig": {
     "access": "public",

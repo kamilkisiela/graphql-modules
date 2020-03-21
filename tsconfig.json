@@ -15,7 +15,7 @@
     "emitDecoratorMetadata": true,
 
     "importHelpers": true,
-    "lib": ["esnext"],
+    "lib": ["ESNext"],
 
     "sourceMap": true,
     "declaration": true,
@@ -25,7 +25,8 @@
     "noUnusedParameters": true,
 
     "paths": {
-      "@graphql-modules/core": ["packages/core/src/index.ts"]
+      "@graphql-modules/core": ["packages/core/src/index.ts"],
+      "@graphql-modules/di": ["packages/di/src/index.ts"]
     }
   }
 }

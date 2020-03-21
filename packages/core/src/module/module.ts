@@ -1,5 +1,5 @@
 import { DocumentNode } from "graphql";
-import { Injector, Provider } from "injection-js";
+import { ReflectiveInjector, Injector, Provider } from "@graphql-modules/di";
 import { moduleFactory } from "./factory";
 import { ID, Single } from "../shared/types";
 import { TypeDefs, Resolvers } from "./types";
@@ -24,8 +24,9 @@ export interface GraphQLModule {
   resolvers?: Single<Resolvers>;
   providers?: Provider[];
   metadata: ModuleMetadata;
+  injector: ReflectiveInjector;
 }
 
-export function createModule(config: ModuleConfig): GraphQLModule {
+export function createModule(config: ModuleConfig) {
   return moduleFactory(config);
 }

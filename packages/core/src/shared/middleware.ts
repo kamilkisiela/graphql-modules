@@ -5,7 +5,9 @@ export type Middleware<TContext = {}> = (
   next: Next
 ) => Promise<void>;
 
-export function compose<TContext = {}>(middleware: Array<Middleware<TContext>>) {
+export function compose<TContext = {}>(
+  middleware: Array<Middleware<TContext>>
+) {
   if (!Array.isArray(middleware)) {
     throw new TypeError("Middleware stack must be an array!");
   }

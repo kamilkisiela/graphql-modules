@@ -8,7 +8,6 @@ export {
   ClassProvider,
   ValueProvider,
   TypeProvider,
-  ExistingProvider,
   forwardRef,
   InjectionToken
-} from "injection-js";
+} from "@graphql-modules/di";
