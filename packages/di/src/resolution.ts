@@ -86,9 +86,7 @@ function resolveFactory(provider: NormalizedProvider): ResolvedFactory {
     resolvedDeps = dependenciesFor(useClass);
   } else if (isFactoryProvider(provider)) {
     factoryFn = provider.useFactory;
-    resolvedDeps = constructDependencies(
-      provider.useFactory /*, provider.deps*/
-    );
+    resolvedDeps = constructDependencies(provider.useFactory);
   } else {
     factoryFn = () => provider.useValue;
     resolvedDeps = _EMPTY_LIST;
@@ -138,14 +136,17 @@ function constructDependencies(typeOrFunc: any): Dependency[] {
   return dependenciesFor(typeOrFunc);
 }
 
-function extractToken(param: InjectableParamMetadata, params: InjectableParamMetadata[]) {
+function extractToken(
+  param: InjectableParamMetadata,
+  params: InjectableParamMetadata[]
+) {
   const token = resolveForwardRef(param.type);
 
   if (token) {
     return createDependency(token, param.optional);
   }
 
-  throw noAnnotationError(param.type, params)
+  throw noAnnotationError(param.type, params);
 }
 
 function createDependency(token: any, optional: boolean): Dependency {

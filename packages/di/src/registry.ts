@@ -21,7 +21,7 @@ export class ReflectiveKey {
   }
 }
 
-export class KeyRegistry {
+class KeyRegistry {
   private _allKeys = new Map<Object, ReflectiveKey>();
 
   get(token: Type<any>): ReflectiveKey {

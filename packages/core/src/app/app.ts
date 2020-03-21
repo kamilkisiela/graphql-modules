@@ -7,12 +7,15 @@ import {
 import { DocumentNode, GraphQLSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
 import { REQUEST, RESPONSE } from "./tokens";
-import { ModuleContext, GraphQLModule } from "../module/module";
+import {
+  ModuleContext,
+  GraphQLModule,
+  ResolvedGraphQLModule
+} from "../module/module";
 import { Resolvers } from "../module/types";
 import { ID, Single } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
 import { flatten, isDefined } from "../shared/utils";
-import { ModuleFactory } from "../module/factory";
 
 export type GraphQLApp = {
   context(input: { request: any; response?: any }): AppContext;
@@ -22,11 +25,11 @@ export type GraphQLApp = {
 };
 
 export interface AppConfig {
-  modules: ModuleFactory[];
+  modules: GraphQLModule[];
   providers?: Provider[];
 }
 
-export type ModulesMap = Map<ID, GraphQLModule>;
+export type ModulesMap = Map<ID, ResolvedGraphQLModule>;
 
 export interface AppContext {
   ɵgetModuleContext(moduleId: ID, context: any): ModuleContext;
@@ -36,8 +39,8 @@ export function createApp(config: AppConfig): GraphQLApp {
   const appInjector = new ReflectiveInjector(
     onlySingletonProviders(config.providers)
   );
-  const modules = config.modules.map(factory =>
-    factory({
+  const modules = config.modules.map(mod =>
+    mod.factory({
       injector: appInjector
     })
   );
@@ -58,9 +61,8 @@ export function createApp(config: AppConfig): GraphQLApp {
       request: any;
       response?: any;
     }): AppContext {
-      // we need to filter out Singleton-scoped providers from config.providers
       const appContextInjector = new ReflectiveInjector(
-        onlyOperationProviders(config.providers || []).concat(
+        onlyOperationProviders(config.providers).concat(
           {
             provide: REQUEST,
             useValue: request
@@ -79,7 +81,7 @@ export function createApp(config: AppConfig): GraphQLApp {
         ɵgetModuleContext(moduleId, context) {
           if (!contextCache[moduleId]) {
             const providers = onlyOperationProviders(
-              moduleMap.get(moduleId)?.providers || []
+              moduleMap.get(moduleId)?.providers
             );
             const moduleInjector = moduleMap.get(moduleId)!.injector;
             const moduleContextInjector = new ReflectiveInjector(
@@ -102,8 +104,8 @@ export function createApp(config: AppConfig): GraphQLApp {
   };
 }
 
-function createModuleMap(modules: GraphQLModule[]): ModulesMap {
-  const moduleMap = new Map<string, GraphQLModule>();
+function createModuleMap(modules: ResolvedGraphQLModule[]): ModulesMap {
+  const moduleMap = new Map<string, ResolvedGraphQLModule>();
 
   for (const module of modules) {
     if (moduleMap.has(module.id)) {

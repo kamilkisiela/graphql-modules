@@ -1,5 +1,5 @@
 {
-  "name": "@kamilkisiela/graphql",
+  "name": "@graphql-modules/core",
   "version": "0.0.0-experimental.1",
   "author": "Kamil Kisiela",
   "license": "MIT",
@@ -21,6 +21,7 @@
     "graphql": "^14.0.0"
   },
   "dependencies": {
+    "@graphql-modules/di": "0.0.0-experimental.1",
     "graphql-tools": "4.0.7"
   },
   "publishConfig": {

@@ -1,3 +1,5 @@
+import { readInjectableMetadata } from './metadata';
+
 export const Type = Function;
 
 /// @ts-ignore
@@ -37,7 +39,7 @@ export type Factory<T> = () => T;
 
 export interface FactoryProvider<T> extends BaseProvider<T> {
   useFactory: Factory<T>;
-  // deps: []
+  // deps?: any[];
 }
 
 export interface BaseProvider<T> extends ProviderOptions {
@@ -63,12 +65,26 @@ export enum ProviderScope {
 
 export function onlySingletonProviders(providers: Provider[] = []): Provider[] {
   return providers.filter(
-    provider => isType(provider) || provider.scope !== ProviderScope.Operation
+    provider => {
+      if (isType(provider)) {
+        const {options} = readInjectableMetadata(provider);
+        return !options || options.scope === ProviderScope.Singleton
+      } else {
+        return provider.scope !== ProviderScope.Operation;
+      }
+    }
   );
 }
 
 export function onlyOperationProviders(providers: Provider[] = []): Provider[] {
   return providers.filter(
-    provider => !isType(provider) && provider.scope === ProviderScope.Operation
+    provider => {
+      if (isType(provider)) {
+        const {options} = readInjectableMetadata(provider);
+        return options && options.scope === ProviderScope.Operation;
+      } else {
+        return provider.scope === ProviderScope.Operation;
+      }
+    }
   );
 }
