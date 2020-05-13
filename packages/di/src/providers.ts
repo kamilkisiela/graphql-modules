@@ -39,7 +39,7 @@ export type Factory<T> = () => T;
 
 export interface FactoryProvider<T> extends BaseProvider<T> {
   useFactory: Factory<T>;
-  // deps?: any[];
+  // TODO: deps?: any[];
 }
 
 export interface BaseProvider<T> extends ProviderOptions {
