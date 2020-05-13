@@ -1,6 +1,6 @@
 import { DocumentNode, visit } from "graphql";
 import { ModuleConfig } from "./module";
-import { ToDo, ID } from "../shared/types";
+import { ID } from "../shared/types";
 
 export type TypesRegistry = Record<string, string[]>; // we need unions and other kinds
 
@@ -13,7 +13,6 @@ export interface ModuleMetadata {
   typeDefs: DocumentNode[];
   implements?: Registry;
   extends?: Registry;
-  provides?: ToDo;
   dirname?: string;
 }
 
@@ -25,6 +24,7 @@ export function metadataFactory(
   const extendedTypes: TypesRegistry = {};
 
   for (const doc of typeDefs) {
+    // TODO: not only GraphQLObjects
     visit(doc, {
       ObjectTypeDefinition(node) {
         if (node.fields) {
