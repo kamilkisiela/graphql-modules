@@ -29,6 +29,8 @@ export interface GraphQLModule {
 
 export type ResolvedGraphQLModule = {
   injector: ReflectiveInjector;
+  singletonProviders: Array<Provider<any>>;
+  operationProviders: Array<Provider<any>>;
 } & Omit<GraphQLModule, "factory">;
 
 export function createModule(config: ModuleConfig) {

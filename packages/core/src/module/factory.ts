@@ -1,6 +1,7 @@
 import {
   ReflectiveInjector,
-  onlySingletonProviders
+  onlySingletonProviders,
+  onlyOperationProviders,
 } from "@graphql-modules/di";
 import { GraphQLModule, ModuleConfig, ResolvedGraphQLModule } from "./module";
 import { metadataFactory } from "./metadata";
@@ -27,21 +28,28 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
     metadata,
     providers: config.providers,
     factory(parent) {
+      const resolvedMod: Partial<ResolvedGraphQLModule> = mod;
+
+      resolvedMod.operationProviders = onlyOperationProviders(config.providers);
+      resolvedMod.singletonProviders = onlySingletonProviders(config.providers);
+
       const injector = new ReflectiveInjector(
-        onlySingletonProviders(config.providers).concat({
+        resolvedMod.singletonProviders.concat({
           provide: MODULE_ID,
-          useValue: config.id
+          useValue: config.id,
         }),
         parent.injector
       );
 
+      injector.instantiateAll();
+
       // We attach injector property to existing `mod` object
       // because we want to keep references
       // that are later on used in testing utils
-      (mod as any).injector = injector;
+      (resolvedMod as any).injector = injector;
 
-      return mod as any;
-    }
+      return resolvedMod as ResolvedGraphQLModule;
+    },
   };
 
   return mod;

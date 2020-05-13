@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
+    "incremental": true,
+
     "baseUrl": ".",
-    "rootDir": ".",
+    "rootDir": "packages",
     "outDir": "dist",
 
     "module": "esnext",
@@ -28,5 +30,6 @@
       "@graphql-modules/core": ["packages/core/src/index.ts"],
       "@graphql-modules/di": ["packages/di/src/index.ts"]
     }
-  }
+  },
+  "include": ["packages"]
 }

@@ -2,7 +2,7 @@ import {
   Provider,
   ReflectiveInjector,
   onlySingletonProviders,
-  onlyOperationProviders
+  onlyOperationProviders,
 } from "@graphql-modules/di";
 import { DocumentNode, GraphQLSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
@@ -10,7 +10,7 @@ import { REQUEST, RESPONSE } from "./tokens";
 import {
   ModuleContext,
   GraphQLModule,
-  ResolvedGraphQLModule
+  ResolvedGraphQLModule,
 } from "../module/module";
 import { Resolvers } from "../module/types";
 import { ID, Single } from "../shared/types";
@@ -39,15 +39,19 @@ export function createApp(config: AppConfig): GraphQLApp {
   const appInjector = new ReflectiveInjector(
     onlySingletonProviders(config.providers)
   );
-  const modules = config.modules.map(mod =>
+  const appOperationProviders = onlyOperationProviders(config.providers);
+
+  appInjector.instantiateAll();
+
+  const modules = config.modules.map((mod) =>
     mod.factory({
-      injector: appInjector
+      injector: appInjector,
     })
   );
   const moduleMap = createModuleMap(modules);
 
-  const typeDefs = flatten(modules.map(mod => mod.typeDefs));
-  const resolvers = modules.map(mod => mod.resolvers).filter(isDefined);
+  const typeDefs = flatten(modules.map((mod) => mod.typeDefs));
+  const resolvers = modules.map((mod) => mod.resolvers).filter(isDefined);
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
   return {
@@ -56,20 +60,20 @@ export function createApp(config: AppConfig): GraphQLApp {
     schema,
     context({
       request,
-      response
+      response,
     }: {
       request: any;
       response?: any;
     }): AppContext {
       const appContextInjector = new ReflectiveInjector(
-        onlyOperationProviders(config.providers).concat(
+        appOperationProviders.concat(
           {
             provide: REQUEST,
-            useValue: request
+            useValue: request,
           },
           {
             provide: RESPONSE,
-            useValue: response
+            useValue: response,
           }
         ),
         appInjector
@@ -80,9 +84,7 @@ export function createApp(config: AppConfig): GraphQLApp {
       return {
         ɵgetModuleContext(moduleId, context) {
           if (!contextCache[moduleId]) {
-            const providers = onlyOperationProviders(
-              moduleMap.get(moduleId)?.providers
-            );
+            const providers = moduleMap.get(moduleId)?.operationProviders!;
             const moduleInjector = moduleMap.get(moduleId)!.injector;
             const moduleContextInjector = new ReflectiveInjector(
               providers,
@@ -93,14 +95,14 @@ export function createApp(config: AppConfig): GraphQLApp {
             contextCache[moduleId] = {
               ...context,
               injector: moduleContextInjector,
-              moduleId
+              moduleId,
             };
           }
 
           return contextCache[moduleId];
-        }
+        },
       };
-    }
+    },
   };
 }
 

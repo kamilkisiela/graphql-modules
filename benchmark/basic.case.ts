@@ -1,8 +1,8 @@
-const Benchmark = require("benchmark");
-const { createApp, createModule, InjectionToken } = require("../dist");
-const { parse, execute } = require("graphql");
-const { makeExecutableSchema } = require("graphql-tools");
-const { deepEqual } = require("assert");
+import Benchmark from "benchmark";
+import { createApp, createModule, InjectionToken } from "@graphql-modules/core";
+import { parse, execute, GraphQLSchema } from "graphql";
+import { makeExecutableSchema } from "graphql-tools";
+import { deepEqual } from "assert";
 
 const suite = new Benchmark.Suite();
 
@@ -23,16 +23,16 @@ const app = createApp({
       typeDefs,
       resolvers: {
         Query: {
-          posts(_parent, __args) {
+          posts(_parent: string, __args: any) {
             return posts;
-          }
+          },
         },
         Post: {
-          title: title => title
-        }
-      }
-    })
-  ]
+          title: (title: string) => title,
+        },
+      },
+    }),
+  ],
 });
 
 class Posts {
@@ -53,21 +53,21 @@ const appWithDI = createApp({
           provide: PostsToken,
           useFactory() {
             return new Posts();
-          }
-        }
+          },
+        },
       ],
       resolvers: {
         Query: {
-          posts(_parent, __args, { injector }) {
+          posts(_parent: any, __args: any, { injector }: any) {
             return injector.get(PostsToken).all();
-          }
+          },
         },
         Post: {
-          title: title => title
-        }
-      }
-    })
-  ]
+          title: (title: string) => title,
+        },
+      },
+    }),
+  ],
 });
 
 const pureSchema = makeExecutableSchema({
@@ -76,17 +76,17 @@ const pureSchema = makeExecutableSchema({
     Query: {
       posts() {
         return posts;
-      }
+      },
     },
     Post: {
-      title: title => title
-    }
-  }
+      title: (title) => title,
+    },
+  },
 });
 
 let showedError = false;
 
-async function graphql(schema, context) {
+async function graphql(schema: GraphQLSchema, context: any) {
   const { data, errors } = await execute({
     schema,
     document: parse(/* GraphQL */ `
@@ -96,7 +96,7 @@ async function graphql(schema, context) {
         }
       }
     `),
-    contextValue: context({ request: {}, response: {} })
+    contextValue: context({ request: {}, response: {} }),
   });
 
   if (errors && !showedError) {
@@ -108,12 +108,12 @@ async function graphql(schema, context) {
   deepEqual(data, {
     posts: [
       {
-        title: "Foo"
+        title: "Foo",
       },
       {
-        title: "Bar"
-      }
-    ]
+        title: "Bar",
+      },
+    ],
   });
 }
 
@@ -128,13 +128,10 @@ suite
   .add("GraphQL Modules w DI", async () => {
     await graphql(appWithDI.schema, appWithDI.context);
   })
-  .on("cycle", event => {
+  .on("cycle", (event: any) => {
     console.log(String(event.target));
   })
-  .on("error", error => {
+  .on("error", (error: any) => {
     console.log(error);
-  })
-  .on("complete", function() {
-    console.log("Fastest is " + this.filter("fastest").map("name"));
   })
   .run({ async: true });

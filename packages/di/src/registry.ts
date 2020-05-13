@@ -2,7 +2,7 @@ import { stringify } from "./utils";
 import { resolveForwardRef } from "./forward-ref";
 import { Type } from "./providers";
 
-export class ReflectiveKey {
+export class Key {
   constructor(public token: Type<any>, public id: number) {
     if (!token) {
       throw new Error("Token must be defined!");
@@ -16,16 +16,16 @@ export class ReflectiveKey {
     return stringify(this.token);
   }
 
-  static get(token: Object): ReflectiveKey {
+  static get(token: Object): Key {
     return _globalKeyRegistry.get(resolveForwardRef(token));
   }
 }
 
-class KeyRegistry {
-  private _allKeys = new Map<Object, ReflectiveKey>();
+class GlobalKeyRegistry {
+  private _allKeys = new Map<Object, Key>();
 
-  get(token: Type<any>): ReflectiveKey {
-    if (token instanceof ReflectiveKey) {
+  get(token: Type<any>): Key {
+    if (token instanceof Key) {
       return token;
     }
 
@@ -33,7 +33,7 @@ class KeyRegistry {
       return this._allKeys.get(token)!;
     }
 
-    const newKey = new ReflectiveKey(token, _globalKeyRegistry.numberOfKeys);
+    const newKey = new Key(token, _globalKeyRegistry.numberOfKeys);
     this._allKeys.set(token, newKey);
     return newKey;
   }
@@ -43,4 +43,4 @@ class KeyRegistry {
   }
 }
 
-const _globalKeyRegistry = new KeyRegistry();
+const _globalKeyRegistry = new GlobalKeyRegistry();

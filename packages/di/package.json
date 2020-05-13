@@ -1,6 +1,6 @@
 {
   "name": "@graphql-modules/di",
-  "version": "0.0.0-experimental.1",
+  "version": "0.0.0-experimental.2",
   "author": "Kamil Kisiela",
   "license": "MIT",
   "sideEffects": false,
@@ -10,12 +10,8 @@
   "typescript": {
     "definition": "dist/index.d.ts"
   },
-  "buildOptions": {
-    "input": "./src/index.ts"
-  },
   "scripts": {
-    "prebuild": "rm -rf dist",
-    "build": "bob"
+    "prepack": "bob prepack"
   },
   "publishConfig": {
     "access": "public",

@@ -1,6 +1,6 @@
 {
   "name": "@graphql-modules/core",
-  "version": "0.0.0-experimental.1",
+  "version": "0.0.0-experimental.2",
   "author": "Kamil Kisiela",
   "license": "MIT",
   "sideEffects": false,
@@ -10,19 +10,15 @@
   "typescript": {
     "definition": "dist/index.d.ts"
   },
-  "buildOptions": {
-    "input": "./src/index.ts"
-  },
   "scripts": {
-    "prebuild": "rm -rf dist",
-    "build": "bob"
+    "prepack": "bob prepack"
   },
   "peerDependencies": {
-    "graphql": "^14.0.0"
+    "graphql": "^14.0.0 || ^15.0.0"
   },
   "dependencies": {
-    "@graphql-modules/di": "0.0.0-experimental.1",
-    "graphql-tools": "4.0.7"
+    "@graphql-modules/di": "0.0.0-experimental.2",
+    "graphql-tools": "5.0.0"
   },
   "publishConfig": {
     "access": "public",

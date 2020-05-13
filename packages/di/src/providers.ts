@@ -1,4 +1,4 @@
-import { readInjectableMetadata } from './metadata';
+import { readInjectableMetadata } from "./metadata";
 
 export const Type = Function;
 
@@ -12,7 +12,7 @@ export class InjectionToken<T> {
 }
 
 export function isToken(v: any): v is InjectionToken<any> {
-  return v && v instanceof InjectionToken
+  return v && v instanceof InjectionToken;
 }
 
 export function isType(v: any): v is Type<any> {
@@ -60,31 +60,35 @@ export interface ProviderOptions {
 
 export enum ProviderScope {
   Singleton,
-  Operation
+  Operation,
 }
 
 export function onlySingletonProviders(providers: Provider[] = []): Provider[] {
-  return providers.filter(
-    provider => {
-      if (isType(provider)) {
-        const {options} = readInjectableMetadata(provider);
-        return !options || options.scope === ProviderScope.Singleton
-      } else {
-        return provider.scope !== ProviderScope.Operation;
-      }
+  return providers.filter((provider) => {
+    if (isType(provider)) {
+      const { options } = readInjectableMetadata(provider);
+      return !options || options.scope === ProviderScope.Singleton;
+    } else {
+      return provider.scope !== ProviderScope.Operation;
     }
-  );
+  });
 }
 
 export function onlyOperationProviders(providers: Provider[] = []): Provider[] {
-  return providers.filter(
-    provider => {
-      if (isType(provider)) {
-        const {options} = readInjectableMetadata(provider);
-        return options && options.scope === ProviderScope.Operation;
-      } else {
-        return provider.scope === ProviderScope.Operation;
-      }
+  return providers.filter((provider) => {
+    if (isType(provider)) {
+      const { options } = readInjectableMetadata(provider);
+      return options && options.scope === ProviderScope.Operation;
+    } else {
+      return provider.scope === ProviderScope.Operation;
     }
-  );
+  });
+}
+
+export function isClassProvider(provider: any): provider is ClassProvider<any> {
+  return typeof provider.useClass !== "undefined";
+}
+
+export function isFactoryProvider(provider: any): provider is FactoryProvider<any> {
+  return typeof provider.useFactory !== "undefined";
 }

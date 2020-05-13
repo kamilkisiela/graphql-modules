@@ -29,3 +29,6 @@ dist
 # IDE
 .idea
 .vscode
+
+.bob
+tsconfig.tsbuildinfo
