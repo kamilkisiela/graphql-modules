@@ -8,9 +8,14 @@ import {
   useLocation,
   ExtraResolverError,
   ResolverDuplicatedError,
-  ResolverInvalidError
+  ResolverInvalidError,
 } from "./../shared/errors";
 import { isNil, isDefined, isPrimitive } from "../shared/utils";
+import {
+  createResolveMiddleware,
+  normalizeResolveMiddlewaresMap,
+  NormalizedResolveMiddlewareMap,
+} from "../shared/middleware";
 
 const resolverMetadataProp = Symbol("metadata");
 
@@ -23,6 +28,9 @@ export function createResolvers(
   metadata: ModuleMetadata
 ) {
   const ensure = ensureImplements(metadata);
+  const middlewareMap = normalizeResolveMiddlewaresMap(
+    config.resolveMiddlewares || {}
+  );
 
   // TODO: support `__isTypeOf`
   // TODO: support Schema Stitching resolver
@@ -37,29 +45,36 @@ export function createResolvers(
         for (const fieldName in obj) {
           if (obj.hasOwnProperty(fieldName)) {
             ensure.type(typeName, fieldName);
+            const path = [typeName, fieldName];
 
             // function
             if (isResolveFn(obj[fieldName])) {
-              const resolver = wrapObjectResolver({
+              const resolver = wrapResolver({
                 config,
-                resolver: obj[fieldName]
+                resolver: obj[fieldName],
+                middlewareMap,
+                path,
               });
               resolvers[typeName][fieldName] = resolver;
             } else if (isResolveOptions(obj[fieldName])) {
               // { resolve }
               if (isDefined((obj[fieldName] as any).resolve)) {
-                const resolver = wrapObjectResolver({
+                const resolver = wrapResolver({
                   config,
-                  resolver: (obj[fieldName] as any).resolve
+                  resolver: (obj[fieldName] as any).resolve,
+                  middlewareMap,
+                  path,
                 });
                 resolvers[typeName][fieldName].resolve = resolver;
               }
 
               // { subscribe }
               if (isDefined((obj[fieldName] as any).subscribe)) {
-                const resolver = wrapObjectResolver({
+                const resolver = wrapResolver({
                   config,
-                  resolver: (obj[fieldName] as any).subscribe
+                  resolver: (obj[fieldName] as any).subscribe,
+                  middlewareMap,
+                  path,
                 });
                 resolvers[typeName][fieldName].subscribe = resolver;
               }
@@ -73,25 +88,34 @@ export function createResolvers(
   return resolvers;
 }
 
-function wrapObjectResolver({
+function wrapResolver({
   resolver,
-  config
+  config,
+  path,
+  middlewareMap,
 }: {
   resolver: ResolveFn<any>;
+  middlewareMap: NormalizedResolveMiddlewareMap;
   config: ModuleConfig;
+  path: string[];
 }) {
+  const middleware = createResolveMiddleware(path, middlewareMap);
+
   const wrappedResolver: ResolveFn<AppContext> = (
-    parent,
+    root,
     args,
     context,
     info
   ) => {
-    // TODO: we can intercept resolvers here with try/catch and enhance errors with resolver's metadata
-    return resolver(
-      parent,
+    const ctx = {
+      root,
       args,
-      context.ɵgetModuleContext(config.id, context),
-      info
+      context: context.ɵgetModuleContext(config.id, context),
+      info,
+    };
+
+    return middleware(ctx, () =>
+      resolver(ctx.root, ctx.args, ctx.context, ctx.info)
     );
   };
 
@@ -144,7 +168,7 @@ function addInterfaceOrUnion({
   typeName,
   fields,
   container,
-  config
+  config,
 }: {
   typeName: string;
   fields: InterfaceOrUnionResolver;
@@ -174,7 +198,7 @@ function addObject({
   typeName,
   fields,
   container,
-  config
+  config,
 }: {
   typeName: string;
   fields: Record<string, any>;
@@ -238,7 +262,7 @@ function addScalar({
   typeName,
   resolver,
   container,
-  config
+  config,
 }: {
   typeName: string;
   resolver: GraphQLScalarType;
@@ -263,7 +287,7 @@ function addEnum({
   typeName,
   resolver,
   container,
-  config
+  config,
 }: {
   typeName: string;
   resolver: EnumResolver;
@@ -313,7 +337,7 @@ function ensureImplements(metadata: ModuleMetadata) {
         `${id} is not defined`,
         useLocation({ dirname: metadata.dirname, id: metadata.id })
       );
-    }
+    },
   };
 }
 
@@ -323,7 +347,7 @@ function writeResolverMetadata(resolver: Function, config: ModuleConfig): void {
   }
 
   (resolver as any)[resolverMetadataProp] = {
-    moduleId: config.id
+    moduleId: config.id,
   } as ResolverMetadata;
 }
 

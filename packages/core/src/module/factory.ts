@@ -19,22 +19,24 @@ export type ModuleFactory = (
 export function moduleFactory(config: ModuleConfig): GraphQLModule {
   const typeDefs = createTypeDefs(config);
   const metadata = metadataFactory(typeDefs, config);
-  const resolvers = createResolvers(config, metadata);
 
   const mod: GraphQLModule = {
     id: config.id,
-    typeDefs,
-    resolvers,
     metadata,
+    typeDefs,
     providers: config.providers,
     factory(parent) {
-      const resolvedMod: Partial<ResolvedGraphQLModule> = mod;
+      const resolvedModule: Partial<ResolvedGraphQLModule> = mod;
 
-      resolvedMod.operationProviders = onlyOperationProviders(config.providers);
-      resolvedMod.singletonProviders = onlySingletonProviders(config.providers);
+      resolvedModule.operationProviders = onlyOperationProviders(
+        config.providers
+      );
+      resolvedModule.singletonProviders = onlySingletonProviders(
+        config.providers
+      );
 
       const injector = new ReflectiveInjector(
-        resolvedMod.singletonProviders.concat({
+        resolvedModule.singletonProviders.concat({
           provide: MODULE_ID,
           useValue: config.id,
         }),
@@ -46,9 +48,11 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
       // We attach injector property to existing `mod` object
       // because we want to keep references
       // that are later on used in testing utils
-      (resolvedMod as any).injector = injector;
+      (resolvedModule as any).injector = injector;
 
-      return resolvedMod as ResolvedGraphQLModule;
+      resolvedModule.resolvers = createResolvers(config, metadata);
+
+      return resolvedModule as ResolvedGraphQLModule;
     },
   };
 
