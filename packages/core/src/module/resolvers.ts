@@ -13,7 +13,8 @@ import {
 import { isNil, isDefined, isPrimitive } from "../shared/utils";
 import {
   createResolveMiddleware,
-  normalizeResolveMiddlewaresMap,
+  normalizeResolveMiddlewareMap,
+  mergeNormalizedResolveMiddlewareMaps,
   NormalizedResolveMiddlewareMap,
 } from "../shared/middleware";
 
@@ -25,11 +26,15 @@ interface ResolverMetadata {
 
 export function createResolvers(
   config: ModuleConfig,
-  metadata: ModuleMetadata
+  metadata: ModuleMetadata,
+  app: {
+    resolveMiddlewareMap: NormalizedResolveMiddlewareMap;
+  }
 ) {
   const ensure = ensureImplements(metadata);
-  const middlewareMap = normalizeResolveMiddlewaresMap(
-    config.resolveMiddlewares || {}
+  const middlewareMap = mergeNormalizedResolveMiddlewareMaps(
+    app.resolveMiddlewareMap,
+    normalizeResolveMiddlewareMap(config.resolveMiddlewares)
   );
 
   // TODO: support `__isTypeOf`

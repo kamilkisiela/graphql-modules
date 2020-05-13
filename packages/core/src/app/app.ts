@@ -16,6 +16,10 @@ import { Resolvers } from "../module/types";
 import { ID, Single } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
 import { flatten, isDefined } from "../shared/utils";
+import {
+  ResolveMiddlewareMap,
+  normalizeResolveMiddlewareMap,
+} from "../shared/middleware";
 
 export type GraphQLApp = {
   context(input: { request: any; response?: any }): AppContext;
@@ -27,6 +31,7 @@ export type GraphQLApp = {
 export interface AppConfig {
   modules: GraphQLModule[];
   providers?: Provider[];
+  resolveMiddlewares?: ResolveMiddlewareMap;
 }
 
 export type ModulesMap = Map<ID, ResolvedGraphQLModule>;
@@ -40,12 +45,16 @@ export function createApp(config: AppConfig): GraphQLApp {
     onlySingletonProviders(config.providers)
   );
   const appOperationProviders = onlyOperationProviders(config.providers);
+  const resolveMiddlewareMap = normalizeResolveMiddlewareMap(
+    config.resolveMiddlewares
+  );
 
   appInjector.instantiateAll();
 
   const modules = config.modules.map((mod) =>
     mod.factory({
       injector: appInjector,
+      resolveMiddlewares: resolveMiddlewareMap,
     })
   );
   const moduleMap = createModuleMap(modules);

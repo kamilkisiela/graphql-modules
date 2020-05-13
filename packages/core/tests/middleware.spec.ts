@@ -34,7 +34,7 @@ describe("Middleware", () => {
       arr.push(4);
     });
 
-    await compose(stack)({});
+    await (compose as any)(stack)({});
 
     expect(arr).toEqual(expect.arrayContaining([1, 2, 3, 4, 5, 6]));
   });
@@ -66,7 +66,7 @@ describe("Middleware", () => {
       context.arr.push(4);
     });
 
-    const fn = compose<Ctx>(stack);
+    const fn: any = compose<Ctx>(stack);
     const ctx1: Ctx = { arr: [] };
     const ctx2: Ctx = { arr: [] };
     const out = [1, 2, 3, 4, 5, 6];
@@ -102,7 +102,7 @@ describe("Middleware", () => {
       });
     }
 
-    compose(stack)({});
+    (compose as any)(stack)({});
 
     for (let next of arr) {
       expect(next).toBeInstanceOf(Promise);
@@ -124,7 +124,7 @@ describe("Middleware", () => {
       called = true;
     });
 
-    await compose(stack)({});
+    await (compose as any)(stack)({});
 
     expect(called).toBe(true);
   });
@@ -139,7 +139,7 @@ describe("Middleware", () => {
     let err: Error = {} as any;
 
     try {
-      await compose(stack)({});
+      await (compose as any)(stack)({});
     } catch (e) {
       err = e;
     }
@@ -151,8 +151,8 @@ describe("Middleware", () => {
     let err: Error = {} as any;
 
     try {
-      await compose([
-        async (_, next) => {
+      await (compose as any)([
+        async (_: any, next: any) => {
           await next();
           await next();
         }

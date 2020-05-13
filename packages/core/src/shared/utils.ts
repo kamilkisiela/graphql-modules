@@ -10,6 +10,10 @@ export function isNil<T>(val: T | null | undefined): val is null | undefined {
   return val === null || typeof val === "undefined";
 }
 
+export function isObject(val: any) {
+  return Object.prototype.toString.call(val) === "[object Object]";
+}
+
 export function isPrimitive(
   val: any
 ): val is number | string | boolean | symbol | bigint {

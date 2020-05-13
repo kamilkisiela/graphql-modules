@@ -592,6 +592,13 @@
   resolved "https://registry.yarnpkg.com/@types/prettier/-/prettier-2.0.0.tgz#dc85454b953178cc6043df5208b9e949b54a3bc4"
   integrity sha512-/rM+sWiuOZ5dvuVzV37sUuklsbg+JPOP8d+nNFlo2ZtfpzPiPvh1/gc8liWOLBqe+sR+ZM7guPaIcTt6UZTo7Q==
 
+"@types/ramda@0.27.4":
+  version "0.27.4"
+  resolved "https://registry.yarnpkg.com/@types/ramda/-/ramda-0.27.4.tgz#816002c95e54cf3f3d5d7e8e014998450934d992"
+  integrity sha512-uE1OSffeRZoFjVah2RjR4pAyptzqN6T+fEsWr06biuUstR2IBIzKhSGwKxzISAoy4SC+JkJv8y99Hm3cJ/TDOQ==
+  dependencies:
+    ts-toolbelt "^6.3.3"
+
 "@types/resolve@0.0.8":
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/@types/resolve/-/resolve-0.0.8.tgz#f26074d238e02659e323ce1a13d041eee280e194"
@@ -3150,6 +3157,11 @@ qs@~6.5.2:
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.5.2.tgz#cb3ae806e8740444584ef154ce8ee98d403f3e36"
   integrity sha512-N5ZAX4/LxJmF+7wN74pUD6qAh9/wnvdQcjq9TZjevvXzSUo7bfmw91saqMjzGS2xq91/odN2dW/WOl7qQHNDGA==
 
+ramda@0.27.0:
+  version "0.27.0"
+  resolved "https://registry.yarnpkg.com/ramda/-/ramda-0.27.0.tgz#915dc29865c0800bf3f69b8fd6c279898b59de43"
+  integrity sha512-pVzZdDpWwWqEVVLshWUHjNwuVP7SfcmPraYuqocJp1yo2U1R7P+5QAfDhdItkuoGqIBnBYrtPp7rEPqDn9HlZA==
+
 react-is@^16.12.0:
   version "16.13.0"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.0.tgz#0f37c3613c34fe6b37cd7f763a0d6293ab15c527"
@@ -3832,6 +3844,11 @@ ts-node@8.10.1:
     make-error "^1.1.1"
     source-map-support "^0.5.17"
     yn "3.1.1"
+
+ts-toolbelt@^6.3.3:
+  version "6.7.4"
+  resolved "https://registry.yarnpkg.com/ts-toolbelt/-/ts-toolbelt-6.7.4.tgz#30e6999578a82ed4636563cb525bb3664a255760"
+  integrity sha512-cP8q7BnIyuevMyBpq+TVKf3NvSS70S+BLdhzHVeV/5WNPMoUxN5YWMKgUd54qAwWgk6n2USHi/2XFIxZJa+30g==
 
 tslib@1.11.1, tslib@^1.10.0:
   version "1.11.1"

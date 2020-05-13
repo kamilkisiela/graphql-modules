@@ -8,13 +8,12 @@ import { metadataFactory } from "./metadata";
 import { createResolvers } from "./resolvers";
 import { createTypeDefs } from "./type-defs";
 import { MODULE_ID } from "../app/tokens";
+import { NormalizedResolveMiddlewareMap } from "../shared/middleware";
 
-export type ModuleFactoryInput = {
+export type ModuleFactory = (app: {
   injector: ReflectiveInjector;
-};
-export type ModuleFactory = (
-  input: ModuleFactoryInput
-) => ResolvedGraphQLModule;
+  resolveMiddlewares: NormalizedResolveMiddlewareMap;
+}) => ResolvedGraphQLModule;
 
 export function moduleFactory(config: ModuleConfig): GraphQLModule {
   const typeDefs = createTypeDefs(config);
@@ -50,7 +49,9 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
       // that are later on used in testing utils
       (resolvedModule as any).injector = injector;
 
-      resolvedModule.resolvers = createResolvers(config, metadata);
+      resolvedModule.resolvers = createResolvers(config, metadata, {
+        resolveMiddlewareMap: parent.resolveMiddlewares,
+      });
 
       return resolvedModule as ResolvedGraphQLModule;
     },

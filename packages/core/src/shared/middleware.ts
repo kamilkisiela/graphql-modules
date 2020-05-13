@@ -1,4 +1,5 @@
 import { GraphQLResolveInfo } from "graphql";
+import { mergeDeepWith } from "ramda";
 import { ModuleContext } from "../module/module";
 import { isDefined } from "./utils";
 
@@ -89,8 +90,28 @@ export function createResolveMiddleware(
   return compose<ResolveMiddlewareContext>(middlewares);
 }
 
-export function normalizeResolveMiddlewaresMap(
-  middlewaresMap: ResolveMiddlewareMap
+export function mergeNormalizedResolveMiddlewareMaps(
+  app: NormalizedResolveMiddlewareMap,
+  mod: NormalizedResolveMiddlewareMap
+): NormalizedResolveMiddlewareMap {
+  const merge = (left: any, right: any): any => {
+    return mergeDeepWith(
+      (l, r) => {
+        if (Array.isArray(l)) {
+          return l.concat(r || []);
+        }
+
+        return merge(l, r);
+      },
+      left,
+      right
+    );
+  };
+  return merge(app, mod);
+}
+
+export function normalizeResolveMiddlewareMap(
+  middlewaresMap?: ResolveMiddlewareMap
 ): NormalizedResolveMiddlewareMap {
   const normalized: NormalizedResolveMiddlewareMap = {
     types: {},
