@@ -2,12 +2,15 @@ import "reflect-metadata";
 import {
   createApp,
   createModule,
-  Injectable,
-  InjectionToken,
   MODULE_ID,
   ModuleContext,
   testModule
 } from "@graphql-modules/core";
+import {
+  Injectable,
+  InjectionToken,
+  ProviderScope,
+} from '@graphql-modules/di';
 import { makeExecutableSchema } from "graphql-tools";
 import { execute, parse } from "graphql";
 
@@ -16,31 +19,65 @@ const Test = new InjectionToken<string>("test");
 const posts = ["Foo", "Bar"];
 const comments = ["Comment #1", "Comment #2"];
 
-@Injectable()
-class Posts {
-  all() {
-    return posts;
-  }
-}
-
-@Injectable()
-class Comments {
-  all() {
-    return comments;
-  }
-}
-
 test("basic", async () => {
   const spies = {
+    logger: jest.fn(),
     posts: {
       moduleId: jest.fn(),
-      test: jest.fn()
+      test: jest.fn(),
+      postService: jest.fn(),
+      eventService: jest.fn()
     },
     comments: {
       moduleId: jest.fn(),
-      test: jest.fn()
+      test: jest.fn(),
+      commentsService: jest.fn()
     }
   };
+
+  @Injectable({
+    scope: ProviderScope.Operation
+  })
+  class Logger {
+    constructor() {
+      spies.logger();
+    }
+
+    log() {}
+  }
+
+  @Injectable({
+    scope: ProviderScope.Operation
+  })
+  class Events {
+    constructor() {
+      spies.posts.eventService();
+    }
+
+    emit() {}
+  }
+
+  @Injectable()
+  class Posts {
+    constructor() {
+      spies.posts.postService();
+    }
+
+    all() {
+      return posts;
+    }
+  }
+
+  @Injectable()
+  class Comments {
+    constructor() {
+      spies.comments.commentsService();
+    }
+
+    all() {
+      return comments;
+    }
+  }
 
   // Child module
   const commonModule = createModule({
@@ -57,6 +94,7 @@ test("basic", async () => {
     id: "posts",
     providers: [
       Posts,
+      Events,
       {
         provide: Test,
         useValue: "local"
@@ -76,6 +114,8 @@ test("basic", async () => {
         posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
           spies.posts.moduleId(injector.get(MODULE_ID));
           spies.posts.test(injector.get(Test));
+          injector.get(Events).emit();
+          injector.get(Logger).log();
 
           return injector.get(Posts).all();
         }
@@ -104,6 +144,7 @@ test("basic", async () => {
         comments(_parent: {}, __args: {}, { injector }: ModuleContext) {
           spies.comments.moduleId(injector.get(MODULE_ID));
           spies.comments.test(injector.get(Test));
+          injector.get(Logger).log();
 
           return injector.get(Comments).all();
         }
@@ -118,6 +159,7 @@ test("basic", async () => {
   const appModule = createApp({
     modules: [commonModule, postsModule, commentsModule],
     providers: [
+      Logger,
       {
         provide: Test,
         useValue: "global"
@@ -131,19 +173,22 @@ test("basic", async () => {
     resolvers: appModule.resolvers
   });
 
+  const createContext = () => appModule.context({ request: {}, response: {} });
+  const document = parse(/* GraphQL */ `
+    {
+      comments {
+        text
+      }
+      posts {
+        title
+      }
+    }
+  `);
+
   const result = await execute({
     schema,
-    contextValue: appModule.context({ request: {}, response: {} }),
-    document: parse(/* GraphQL */ `
-      {
-        comments {
-          text
-        }
-        posts {
-          title
-        }
-      }
-    `)
+    contextValue: createContext(),
+    document
   });
 
   // Should resolve data correctly
@@ -160,9 +205,29 @@ test("basic", async () => {
   // Value of MODULE_ID according to module's resolver
   expect(spies.posts.moduleId).toHaveBeenCalledWith("posts");
   expect(spies.comments.moduleId).toHaveBeenCalledWith("comments");
+
+  await execute({
+    schema,
+    contextValue: createContext(),
+    document
+  });
+
+  // Singleton providers should be called once
+  expect(spies.posts.postService).toHaveBeenCalledTimes(1);
+  expect(spies.comments.commentsService).toHaveBeenCalledTimes(1);
+
+  // Operation provider should be called twice
+  expect(spies.posts.eventService).toHaveBeenCalledTimes(2);
+  expect(spies.logger).toHaveBeenCalledTimes(2);
 });
 
 test("testModule testing util", async () => {
+  @Injectable()
+  class Posts {
+    all() {
+      return posts;
+    }
+  }
   const postsModule = createModule({
     id: "posts",
     providers: [Posts],

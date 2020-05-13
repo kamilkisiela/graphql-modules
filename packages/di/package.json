@@ -1,5 +1,5 @@
 {
-  "name": "@graphql-modules/core",
+  "name": "@graphql-modules/di",
   "version": "0.0.0-experimental.2",
   "author": "Kamil Kisiela",
   "license": "MIT",
@@ -12,13 +12,6 @@
   },
   "scripts": {
     "prepack": "bob prepack"
-  },
-  "peerDependencies": {
-    "graphql": "^14.0.0 || ^15.0.0"
-  },
-  "dependencies": {
-    "@graphql-modules/di": "0.0.0-experimental.2",
-    "graphql-tools": "5.0.0"
   },
   "publishConfig": {
     "access": "public",

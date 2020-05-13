@@ -5,24 +5,28 @@
   "license": "MIT",
   "workspaces": {
     "packages": [
-      "packages/*",
-      "apps/*"
+      "packages/*"
     ]
   },
   "scripts": {
-    "build": "yarn workspaces run build",
+    "build": "tsc --project tsconfig.json && bob build",
     "test": "jest",
-    "format": "prettier --write {packages,apps}/**/*.{js,json,css,md,ts,tsx}"
+    "format": "prettier --write {packages,apps}/**/*.{js,json,css,md,ts,tsx}",
+    "benchmark:basic": "ts-node --project tsconfig.benchmark.json benchmark/basic.case.ts"
   },
   "devDependencies": {
-    "@types/jest": "25.1.4",
-    "@types/node": "13.9.2",
-    "bob-the-bundler": "0.3.4",
-    "graphql": "14.6.0",
-    "jest": "25.1.0",
-    "prettier": "1.19.1",
+    "@types/benchmark": "1.0.32",
+    "@types/jest": "25.2.1",
+    "@types/node": "14.0.1",
+    "benchmark": "2.1.4",
+    "bob-the-bundler": "1.0.0-rc.14",
+    "dataloader": "2.0.0",
+    "graphql": "15.0.0",
+    "jest": "26.0.1",
+    "prettier": "2.0.5",
     "reflect-metadata": "0.1.13",
-    "ts-jest": "25.2.1",
-    "typescript": "3.8.3"
+    "ts-jest": "25.5.1",
+    "ts-node": "8.10.1",
+    "typescript": "3.9.2"
   }
 }

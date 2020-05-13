@@ -1,8 +1,17 @@
+import {
+  Provider,
+  ReflectiveInjector,
+  onlySingletonProviders,
+  onlyOperationProviders,
+} from "@graphql-modules/di";
 import { DocumentNode, GraphQLSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-import { ReflectiveInjector, Provider } from "injection-js";
-import { REQUEST, RESPONSE, MODULES, MODULE_ID } from "./tokens";
-import { GraphQLModule, ModuleContext } from "../module/module";
+import { REQUEST, RESPONSE } from "./tokens";
+import {
+  ModuleContext,
+  GraphQLModule,
+  ResolvedGraphQLModule,
+} from "../module/module";
 import { Resolvers } from "../module/types";
 import { ID, Single } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
@@ -20,17 +29,29 @@ export interface AppConfig {
   providers?: Provider[];
 }
 
-export type ModulesMap = Map<ID, GraphQLModule>;
+export type ModulesMap = Map<ID, ResolvedGraphQLModule>;
 
 export interface AppContext {
   ɵgetModuleContext(moduleId: ID, context: any): ModuleContext;
 }
 
 export function createApp(config: AppConfig): GraphQLApp {
-  const modules = createModuleMap(config.modules);
+  const appInjector = new ReflectiveInjector(
+    onlySingletonProviders(config.providers)
+  );
+  const appOperationProviders = onlyOperationProviders(config.providers);
 
-  const typeDefs = flatten(config.modules.map(mod => mod.typeDefs));
-  const resolvers = config.modules.map(mod => mod.resolvers).filter(isDefined);
+  appInjector.instantiateAll();
+
+  const modules = config.modules.map((mod) =>
+    mod.factory({
+      injector: appInjector,
+    })
+  );
+  const moduleMap = createModuleMap(modules);
+
+  const typeDefs = flatten(modules.map((mod) => mod.typeDefs));
+  const resolvers = modules.map((mod) => mod.resolvers).filter(isDefined);
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
   return {
@@ -39,26 +60,23 @@ export function createApp(config: AppConfig): GraphQLApp {
     schema,
     context({
       request,
-      response
+      response,
     }: {
       request: any;
       response?: any;
     }): AppContext {
-      const injector = ReflectiveInjector.resolveAndCreate(
-        (config.providers || []).concat(
+      const appContextInjector = new ReflectiveInjector(
+        appOperationProviders.concat(
           {
             provide: REQUEST,
-            useValue: request
+            useValue: request,
           },
           {
             provide: RESPONSE,
-            useValue: response
-          },
-          {
-            provide: MODULES,
-            useValue: modules
+            useValue: response,
           }
-        )
+        ),
+        appInjector
       );
 
       const contextCache: Record<ID, ModuleContext> = {};
@@ -66,26 +84,30 @@ export function createApp(config: AppConfig): GraphQLApp {
       return {
         ɵgetModuleContext(moduleId, context) {
           if (!contextCache[moduleId]) {
-            const providers: Provider[] = (
-              modules.get(moduleId)!.providers || []
-            ).concat({ provide: MODULE_ID, useValue: moduleId });
+            const providers = moduleMap.get(moduleId)?.operationProviders!;
+            const moduleInjector = moduleMap.get(moduleId)!.injector;
+            const moduleContextInjector = new ReflectiveInjector(
+              providers,
+              moduleInjector,
+              appContextInjector
+            );
 
             contextCache[moduleId] = {
               ...context,
-              injector: injector.resolveAndCreateChild(providers),
-              moduleId
+              injector: moduleContextInjector,
+              moduleId,
             };
           }
 
           return contextCache[moduleId];
-        }
+        },
       };
-    }
+    },
   };
 }
 
-function createModuleMap(modules: GraphQLModule[]): ModulesMap {
-  const moduleMap = new Map<string, GraphQLModule>();
+function createModuleMap(modules: ResolvedGraphQLModule[]): ModulesMap {
+  const moduleMap = new Map<string, ResolvedGraphQLModule>();
 
   for (const module of modules) {
     if (moduleMap.has(module.id)) {
