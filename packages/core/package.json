@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@graphql-modules/di": "0.0.0-experimental.2",
-    "graphql-tools": "5.0.0"
+    "@graphql-tools/schema": "5.0.1-alpha-e22446c.0",
+    "ramda": "0.27.0"
   },
   "publishConfig": {
     "access": "public",

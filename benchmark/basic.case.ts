@@ -1,7 +1,7 @@
 import Benchmark from "benchmark";
 import { createApp, createModule, InjectionToken } from "@graphql-modules/core";
 import { parse, execute, GraphQLSchema } from "graphql";
-import { makeExecutableSchema } from "graphql-tools";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 import { deepEqual } from "assert";
 
 const suite = new Benchmark.Suite();

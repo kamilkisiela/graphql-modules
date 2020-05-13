@@ -11,7 +11,7 @@ import {
   InjectionToken,
   ProviderScope,
 } from '@graphql-modules/di';
-import { makeExecutableSchema } from "graphql-tools";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 import { execute, parse } from "graphql";
 
 const Test = new InjectionToken<string>("test");
