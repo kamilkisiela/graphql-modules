@@ -5,7 +5,7 @@ import {
   onlyOperationProviders,
 } from "@graphql-modules/di";
 import { DocumentNode, GraphQLSchema } from "graphql";
-import { makeExecutableSchema } from "graphql-tools";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 import { REQUEST, RESPONSE } from "./tokens";
 import {
   ModuleContext,
