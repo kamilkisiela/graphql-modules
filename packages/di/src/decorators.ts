@@ -4,6 +4,7 @@ import {
   InjectableMetadata,
   readInjectableMetadata,
 } from "./metadata";
+import { Injector } from "./injector";
 
 export function Injectable(options?: ProviderOptions): ClassDecorator {
   return (target) => {
@@ -45,6 +46,10 @@ export function Inject(type: Type<any>): ParameterDecorator {
     meta.params[index].type = type;
   };
 }
+
+export type ExecutionContext<TContext = {}> = {
+  injector: Injector;
+} & TContext;
 
 export function ExecutionContext(): PropertyDecorator {
   return (obj, propertyKey) => {

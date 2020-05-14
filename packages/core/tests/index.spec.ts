@@ -234,7 +234,7 @@ test("ExecutionContext on module level provider", async () => {
   })
   class Posts {
     @ExecutionContext()
-    context: any;
+    context!: ExecutionContext;
 
     constructor() {
       spies.posts();
