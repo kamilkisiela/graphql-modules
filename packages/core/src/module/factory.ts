@@ -24,7 +24,7 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
     metadata,
     typeDefs,
     providers: config.providers,
-    factory(parent) {
+    factory(app) {
       const resolvedModule: Partial<ResolvedGraphQLModule> = mod;
 
       resolvedModule.operationProviders = onlyOperationProviders(
@@ -39,7 +39,7 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
           provide: MODULE_ID,
           useValue: config.id,
         }),
-        parent.injector
+        app.injector
       );
 
       injector.instantiateAll();
@@ -50,7 +50,7 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
       (resolvedModule as any).injector = injector;
 
       resolvedModule.resolvers = createResolvers(config, metadata, {
-        resolveMiddlewareMap: parent.resolveMiddlewares,
+        resolveMiddlewareMap: app.resolveMiddlewares,
       });
 
       return resolvedModule as ResolvedGraphQLModule;

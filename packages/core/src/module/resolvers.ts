@@ -37,15 +37,13 @@ export function createResolvers(
     normalizeResolveMiddlewareMap(config.resolveMiddlewares)
   );
 
-  // TODO: support `__isTypeOf`
-  // TODO: support Schema Stitching resolver
   const resolvers = mergeResolvers(config);
 
+  // Wrap resolvers
   for (const typeName in resolvers) {
     if (resolvers.hasOwnProperty(typeName)) {
       const obj = resolvers[typeName];
 
-      // TODO: support schema stitching
       if (isObjectResolver(obj)) {
         for (const fieldName in obj) {
           if (obj.hasOwnProperty(fieldName)) {
@@ -86,6 +84,14 @@ export function createResolvers(
             }
           }
         }
+      } else if (isInterfaceOrUnionResolver(obj)) {
+        const resolver = wrapResolver({
+          config,
+          resolver: obj.__resolveType,
+          middlewareMap,
+          path: [typeName, "__resolveType"],
+        });
+        resolvers[typeName].__resolveType = resolver;
       }
     }
   }
@@ -141,7 +147,6 @@ function mergeResolvers(config: ModuleConfig): Single<Resolvers> {
   const container: Single<Resolvers> = {};
 
   for (const currentResolvers of resolvers) {
-    // TODO: support Scalars and Subscriptions
     for (const typeName in currentResolvers) {
       if (currentResolvers.hasOwnProperty(typeName)) {
         const value = currentResolvers[typeName];
