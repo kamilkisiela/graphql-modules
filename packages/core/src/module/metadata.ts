@@ -26,6 +26,7 @@ export function metadataFactory(
   for (const doc of typeDefs) {
     // TODO: not only GraphQLObjects
     visit(doc, {
+      // GraphQLObject
       ObjectTypeDefinition(node) {
         if (node.fields) {
           implementedTypes[node.name.value] = node.fields.map(
@@ -41,7 +42,7 @@ export function metadataFactory(
             extendedTypes[node.name.value].push(field.name.value);
           });
         }
-      }
+      },
     });
   }
 
