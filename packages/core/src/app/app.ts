@@ -4,7 +4,15 @@ import {
   onlySingletonProviders,
   onlyOperationProviders,
 } from "@graphql-modules/di";
-import { DocumentNode, GraphQLSchema } from "graphql";
+import {
+  execute,
+  DocumentNode,
+  GraphQLSchema,
+  ExecutionArgs,
+  ExecutionResult,
+  GraphQLFieldResolver,
+  GraphQLTypeResolver,
+} from "graphql";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { REQUEST, RESPONSE } from "./tokens";
 import {
@@ -13,7 +21,7 @@ import {
   ResolvedGraphQLModule,
 } from "../module/module";
 import { Resolvers } from "../module/types";
-import { ID, Single } from "../shared/types";
+import { ID, Single, Maybe, PromiseOrValue } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
 import { flatten, isDefined } from "../shared/utils";
 import {
@@ -21,11 +29,36 @@ import {
   normalizeResolveMiddlewareMap,
 } from "../shared/middleware";
 
+type Execution = {
+  (args: ExecutionArgs): PromiseOrValue<ExecutionResult>;
+  (
+    schema: GraphQLSchema,
+    document: DocumentNode,
+    rootValue?: any,
+    contextValue?: any,
+    variableValues?: Maybe<{ [key: string]: any }>,
+    operationName?: Maybe<string>,
+    fieldResolver?: Maybe<GraphQLFieldResolver<any, any>>,
+    typeResolver?: Maybe<GraphQLTypeResolver<any, any>>
+  ): PromiseOrValue<ExecutionResult>;
+};
+
+type ContextBuilder<
+  TContext extends {
+    request: any;
+    response?: any;
+    [key: string]: any;
+  } = {
+    request: any;
+    response?: any;
+  }
+> = (context: TContext) => AppContext;
+
 export type GraphQLApp = {
-  context(input: { request: any; response?: any }): AppContext;
   readonly typeDefs: DocumentNode[];
   readonly resolvers?: Single<Resolvers>;
   readonly schema: GraphQLSchema;
+  createExecution(options?: { execute?: typeof execute }): Execution;
 };
 
 export interface AppConfig {
@@ -42,6 +75,7 @@ export interface AppContext {
 
 export function createApp(config: AppConfig): GraphQLApp {
   const appInjector = ReflectiveInjector.create(
+    'App (Singleton Scope)',
     onlySingletonProviders(config.providers)
   );
   const appOperationProviders = onlyOperationProviders(config.providers);
@@ -62,58 +96,87 @@ export function createApp(config: AppConfig): GraphQLApp {
   const resolvers = modules.map((mod) => mod.resolvers).filter(isDefined);
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
+  const contextBuilder: ContextBuilder = (context) => {
+    const appContextInjector = ReflectiveInjector.create(
+      'App (Operation Scope)',
+      appOperationProviders.concat(
+        {
+          provide: REQUEST,
+          useValue: context.request,
+        },
+        {
+          provide: RESPONSE,
+          useValue: context.response,
+        }
+      ),
+      appInjector
+    );
+
+    const contextCache: Record<ID, ModuleContext> = {};
+
+    return {
+      ...(context || {}),
+      ɵgetModuleContext(moduleId, ctx) {
+        if (!contextCache[moduleId]) {
+          const providers = moduleMap.get(moduleId)?.operationProviders!;
+          const moduleInjector = moduleMap.get(moduleId)!.injector;
+
+          const singletonModuleInjector = ReflectiveInjector.createWithExecutionContext(
+            moduleInjector,
+            () => contextCache[moduleId]
+          );
+          const moduleContextInjector = ReflectiveInjector.create(
+            `Module "${moduleId}" (Operation Scope)`,
+            providers,
+            singletonModuleInjector,
+            appContextInjector
+          );
+
+          contextCache[moduleId] = {
+            ...ctx,
+            injector: moduleContextInjector,
+            moduleId,
+          };
+        }
+
+        return contextCache[moduleId];
+      },
+    };
+  };
+
   return {
     typeDefs,
     resolvers,
     schema,
-    context({
-      request,
-      response,
-    }: {
-      request: any;
-      response?: any;
-    }): AppContext {
-      const appContextInjector = ReflectiveInjector.create(
-        appOperationProviders.concat(
-          {
-            provide: REQUEST,
-            useValue: request,
-          },
-          {
-            provide: RESPONSE,
-            useValue: response,
-          }
-        ),
-        appInjector
-      );
+    createExecution(options): Execution {
+      const executeFn = options?.execute || execute;
+      return (
+        argsOrSchema: ExecutionArgs | GraphQLSchema,
+        document?: DocumentNode,
+        rootValue?: any,
+        contextValue?: any,
+        variableValues?: Maybe<{ [key: string]: any }>,
+        operationName?: Maybe<string>,
+        fieldResolver?: Maybe<GraphQLFieldResolver<any, any>>,
+        typeResolver?: Maybe<GraphQLTypeResolver<any, any>>
+      ) => {
+        if (isExecutionArgs(argsOrSchema)) {
+          return executeFn({
+            ...argsOrSchema,
+            contextValue: contextBuilder(argsOrSchema.contextValue),
+          });
+        }
 
-      const contextCache: Record<ID, ModuleContext> = {};
-
-      return {
-        ɵgetModuleContext(moduleId, context) {
-          if (!contextCache[moduleId]) {
-            const providers = moduleMap.get(moduleId)?.operationProviders!;
-            const moduleInjector = moduleMap.get(moduleId)!.injector;
-
-            const singletonModuleInjector = ReflectiveInjector.createWithExecutionContext(
-              moduleInjector,
-              () => contextCache[moduleId]
-            );
-            const moduleContextInjector = ReflectiveInjector.create(
-              providers,
-              singletonModuleInjector,
-              appContextInjector
-            );
-
-            contextCache[moduleId] = {
-              ...context,
-              injector: moduleContextInjector,
-              moduleId,
-            };
-          }
-
-          return contextCache[moduleId];
-        },
+        return executeFn(
+          argsOrSchema,
+          document!,
+          rootValue,
+          contextBuilder(contextValue),
+          variableValues,
+          operationName,
+          fieldResolver,
+          typeResolver
+        );
       };
     },
   };
@@ -147,4 +210,8 @@ function createModuleMap(modules: ResolvedGraphQLModule[]): ModulesMap {
   }
 
   return moduleMap;
+}
+
+function isExecutionArgs(obj: any): obj is ExecutionArgs {
+  return obj instanceof GraphQLSchema === false;
 }

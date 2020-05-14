@@ -68,7 +68,7 @@ export function onlySingletonProviders(providers: Provider[] = []): Provider[] {
   return providers.filter((provider) => {
     if (isType(provider)) {
       const { options } = readInjectableMetadata(provider);
-      return !options || options.scope === ProviderScope.Singleton;
+      return options?.scope !== ProviderScope.Operation;
     } else {
       return provider.scope !== ProviderScope.Operation;
     }
@@ -79,7 +79,7 @@ export function onlyOperationProviders(providers: Provider[] = []): Provider[] {
   return providers.filter((provider) => {
     if (isType(provider)) {
       const { options } = readInjectableMetadata(provider);
-      return options && options.scope === ProviderScope.Operation;
+      return options?.scope === ProviderScope.Operation;
     } else {
       return provider.scope === ProviderScope.Operation;
     }

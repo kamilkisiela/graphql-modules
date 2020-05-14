@@ -103,7 +103,8 @@ function injectionError(
   error.keys = [key];
   error.injectors = [injector];
   error.constructResolvingMessage = constructResolvingMessage;
-  error.message = error.constructResolvingMessage();
+  error.message =
+    error.constructResolvingMessage() + ` - in ${injector.displayName}`;
   (error as any)[ERROR_ORIGINAL_ERROR] = originalError;
   return error;
 }

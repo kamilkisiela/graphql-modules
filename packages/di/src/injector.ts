@@ -22,6 +22,7 @@ export abstract class Injector {
 }
 
 export class ReflectiveInjector implements Injector {
+  displayName: string;
   _constructionCounter: number = 0;
   _providers: ResolvedProvider[];
   _executionContextGetter?: () => any;
@@ -33,10 +34,12 @@ export class ReflectiveInjector implements Injector {
   private _objs: any[];
 
   constructor(
+    name: string,
     providers: ResolvedProvider[],
     parent?: Injector | null,
     fallbackParent?: Injector | null
   ) {
+    this.displayName = name;
     this._parent = parent || null;
     this._fallbackParent = fallbackParent || null;
     this._providers = providers;
@@ -53,11 +56,13 @@ export class ReflectiveInjector implements Injector {
   }
 
   static create(
+    name: string,
     providers: Provider[],
     parent?: Injector,
     fallbackParent?: Injector
   ) {
     return new ReflectiveInjector(
+      name,
       resolveProviders(providers),
       parent,
       fallbackParent
@@ -104,6 +109,7 @@ export class ReflectiveInjector implements Injector {
     });
 
     const newInjector = new ReflectiveInjector(
+      injector.displayName + " (Proxy)",
       providers,
       injector.parent,
       injector.fallbackParent
