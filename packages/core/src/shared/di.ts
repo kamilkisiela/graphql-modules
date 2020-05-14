@@ -3,6 +3,7 @@ export {
   Inject,
   Injectable,
   Optional,
+  ExecutionContext,
   Provider,
   FactoryProvider,
   ClassProvider,

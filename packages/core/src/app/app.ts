@@ -41,14 +41,13 @@ export interface AppContext {
 }
 
 export function createApp(config: AppConfig): GraphQLApp {
-  const appInjector = new ReflectiveInjector(
+  const appInjector = ReflectiveInjector.create(
     onlySingletonProviders(config.providers)
   );
   const appOperationProviders = onlyOperationProviders(config.providers);
   const resolveMiddlewareMap = normalizeResolveMiddlewareMap(
     config.resolveMiddlewares
   );
-
   appInjector.instantiateAll();
 
   const modules = config.modules.map((mod) =>
@@ -74,7 +73,7 @@ export function createApp(config: AppConfig): GraphQLApp {
       request: any;
       response?: any;
     }): AppContext {
-      const appContextInjector = new ReflectiveInjector(
+      const appContextInjector = ReflectiveInjector.create(
         appOperationProviders.concat(
           {
             provide: REQUEST,
@@ -95,9 +94,14 @@ export function createApp(config: AppConfig): GraphQLApp {
           if (!contextCache[moduleId]) {
             const providers = moduleMap.get(moduleId)?.operationProviders!;
             const moduleInjector = moduleMap.get(moduleId)!.injector;
-            const moduleContextInjector = new ReflectiveInjector(
-              providers,
+
+            const singletonModuleInjector = ReflectiveInjector.createWithExecutionContext(
               moduleInjector,
+              () => contextCache[moduleId]
+            );
+            const moduleContextInjector = ReflectiveInjector.create(
+              providers,
+              singletonModuleInjector,
               appContextInjector
             );
 

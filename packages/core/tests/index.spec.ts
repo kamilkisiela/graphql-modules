@@ -6,7 +6,12 @@ import {
   ModuleContext,
   testModule,
 } from "@graphql-modules/core";
-import { Injectable, InjectionToken, ProviderScope } from "@graphql-modules/di";
+import {
+  Injectable,
+  InjectionToken,
+  ProviderScope,
+  ExecutionContext,
+} from "@graphql-modules/di";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { execute, parse } from "graphql";
 
@@ -215,6 +220,116 @@ test("basic", async () => {
   // Operation provider should be called twice
   expect(spies.posts.eventService).toHaveBeenCalledTimes(2);
   expect(spies.logger).toHaveBeenCalledTimes(2);
+});
+
+test("ExecutionContext on module level provider", async () => {
+  const spies = {
+    posts: jest.fn(),
+    connection: jest.fn(),
+    connectionId: jest.fn(),
+  };
+
+  @Injectable({
+    scope: ProviderScope.Singleton,
+  })
+  class Posts {
+    @ExecutionContext()
+    context: any;
+
+    constructor() {
+      spies.posts();
+    }
+
+    all() {
+      const connection = this.context.injector.get(PostsConnection);
+      spies.connectionId(connection.id);
+
+      return connection.all();
+    }
+  }
+
+  @Injectable({
+    scope: ProviderScope.Operation,
+  })
+  class PostsConnection {
+    id: number;
+
+    constructor() {
+      spies.connection();
+      this.id = Math.random();
+    }
+
+    all() {
+      return posts;
+    }
+  }
+
+  const postsModule = createModule({
+    id: "posts",
+    providers: [Posts, PostsConnection],
+    typeDefs: /* GraphQL */ `
+      type Post {
+        title: String!
+      }
+
+      type Query {
+        posts: [Post!]!
+      }
+    `,
+    resolvers: {
+      Query: {
+        posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
+          return injector.get(Posts).all();
+        },
+      },
+      Post: {
+        title: (title: any) => title,
+      },
+    },
+  });
+
+  const app = createApp({
+    modules: [postsModule],
+  });
+
+  const createContext = () => app.context({ request: {}, response: {} });
+  const document = parse(/* GraphQL */ `
+    {
+      posts {
+        title
+      }
+    }
+  `);
+
+  const data = {
+    posts: posts.map((title) => ({ title })),
+  };
+
+  const result1 = await execute({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
+  });
+
+  expect(result1.data).toEqual(data);
+
+  const result2 = await execute({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
+  });
+
+  expect(result2.data).toEqual(data);
+
+  expect(spies.posts).toBeCalledTimes(1);
+  expect(spies.connection).toBeCalledTimes(2);
+  expect(spies.connectionId).toBeCalledTimes(2);
+
+  // ExecutionContext accessed in two executions
+  // should equal two different connections
+  expect(spies.connectionId.mock.calls[0][0]).not.toEqual(
+    spies.connectionId.mock.calls[1][0]
+  );
 });
 
 test("testModule testing util", async () => {
