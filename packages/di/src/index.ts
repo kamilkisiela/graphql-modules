@@ -11,7 +11,7 @@ export {
   FactoryProvider,
   TypeProvider,
   ProviderOptions,
-  ProviderScope,
+  Scope,
   onlySingletonProviders,
   onlyOperationProviders,
 } from "./providers";

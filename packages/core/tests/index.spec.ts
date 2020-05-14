@@ -8,7 +8,7 @@ import {
 import {
   Injectable,
   InjectionToken,
-  ProviderScope,
+  Scope,
   ExecutionContext,
 } from "@graphql-modules/di";
 import { makeExecutableSchema } from "@graphql-tools/schema";
@@ -36,7 +36,7 @@ test("basic", async () => {
   };
 
   @Injectable({
-    scope: ProviderScope.Operation,
+    scope: Scope.Operation,
   })
   class Logger {
     constructor() {
@@ -47,7 +47,7 @@ test("basic", async () => {
   }
 
   @Injectable({
-    scope: ProviderScope.Operation,
+    scope: Scope.Operation,
   })
   class Events {
     constructor() {
@@ -229,7 +229,7 @@ test("ExecutionContext on module level provider", async () => {
   };
 
   @Injectable({
-    scope: ProviderScope.Singleton,
+    scope: Scope.Singleton,
   })
   class Posts {
     @ExecutionContext()
@@ -248,7 +248,7 @@ test("ExecutionContext on module level provider", async () => {
   }
 
   @Injectable({
-    scope: ProviderScope.Operation,
+    scope: Scope.Operation,
   })
   class PostsConnection {
     id: number;
