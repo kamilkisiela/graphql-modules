@@ -1,6 +1,11 @@
 import { InjectableParamMetadata } from "./metadata";
 import { Type } from "./providers";
-import { stringify, wrappedError, ERROR_ORIGINAL_ERROR, getOriginalError } from "./utils";
+import {
+  stringify,
+  wrappedError,
+  ERROR_ORIGINAL_ERROR,
+  getOriginalError,
+} from "./utils";
 import { ReflectiveInjector } from "./injector";
 import { Key } from "./registry";
 
@@ -41,7 +46,7 @@ export function cyclicDependencyError(
   injector: ReflectiveInjector,
   key: Key
 ): InjectionError {
-  return injectionError(injector, key, function(this: InjectionError) {
+  return injectionError(injector, key, function (this: InjectionError) {
     return `Cannot instantiate cyclic dependency!${constructResolvingPath(
       this.keys
     )}`;
@@ -52,7 +57,7 @@ export function noProviderError(
   injector: ReflectiveInjector,
   key: Key
 ): InjectionError {
-  return injectionError(injector, key, function(this: InjectionError) {
+  return injectionError(injector, key, function (this: InjectionError) {
     const first = stringify(this.keys[0].token);
     return `No provider for ${first}!${constructResolvingPath(this.keys)}`;
   });
@@ -66,7 +71,7 @@ export function instantiationError(
   return injectionError(
     injector,
     key,
-    function(this: InjectionError) {
+    function (this: InjectionError) {
       const first = stringify(this.keys[0].token);
       return `${
         getOriginalError(this).message

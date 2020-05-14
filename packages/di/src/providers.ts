@@ -89,6 +89,8 @@ export function isClassProvider(provider: any): provider is ClassProvider<any> {
   return typeof provider.useClass !== "undefined";
 }
 
-export function isFactoryProvider(provider: any): provider is FactoryProvider<any> {
+export function isFactoryProvider(
+  provider: any
+): provider is FactoryProvider<any> {
   return typeof provider.useFactory !== "undefined";
 }

@@ -1,7 +1,7 @@
 import { compose, Middleware } from "../src/shared/middleware";
 
 function wait(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms || 1));
+  return new Promise((resolve) => setTimeout(resolve, ms || 1));
 }
 type Ctx = { arr: number[] };
 
@@ -155,7 +155,7 @@ describe("Middleware", () => {
         async (_: any, next: any) => {
           await next();
           await next();
-        }
+        },
       ])({});
     } catch (e) {
       err = e;

@@ -16,8 +16,8 @@ export function createTypeDefs(config: ModuleConfig): DocumentNode[] {
             `At index "${i}" in the typeDefs list.`,
             useLocation({
               id: config.id,
-              dirname: config.dirname
-            })
+              dirname: config.dirname,
+            }),
           ].join("\n")
         )
       );

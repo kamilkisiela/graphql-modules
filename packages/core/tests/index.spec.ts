@@ -4,13 +4,9 @@ import {
   createModule,
   MODULE_ID,
   ModuleContext,
-  testModule
+  testModule,
 } from "@graphql-modules/core";
-import {
-  Injectable,
-  InjectionToken,
-  ProviderScope,
-} from '@graphql-modules/di';
+import { Injectable, InjectionToken, ProviderScope } from "@graphql-modules/di";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { execute, parse } from "graphql";
 
@@ -26,17 +22,17 @@ test("basic", async () => {
       moduleId: jest.fn(),
       test: jest.fn(),
       postService: jest.fn(),
-      eventService: jest.fn()
+      eventService: jest.fn(),
     },
     comments: {
       moduleId: jest.fn(),
       test: jest.fn(),
-      commentsService: jest.fn()
-    }
+      commentsService: jest.fn(),
+    },
   };
 
   @Injectable({
-    scope: ProviderScope.Operation
+    scope: ProviderScope.Operation,
   })
   class Logger {
     constructor() {
@@ -47,7 +43,7 @@ test("basic", async () => {
   }
 
   @Injectable({
-    scope: ProviderScope.Operation
+    scope: ProviderScope.Operation,
   })
   class Events {
     constructor() {
@@ -86,7 +82,7 @@ test("basic", async () => {
       type Query {
         _noop: String
       }
-    `
+    `,
   });
 
   // Child module
@@ -97,8 +93,8 @@ test("basic", async () => {
       Events,
       {
         provide: Test,
-        useValue: "local"
-      }
+        useValue: "local",
+      },
     ],
     typeDefs: /* GraphQL */ `
       type Post {
@@ -118,12 +114,12 @@ test("basic", async () => {
           injector.get(Logger).log();
 
           return injector.get(Posts).all();
-        }
+        },
       },
       Post: {
-        title: (title: any) => title
-      }
-    }
+        title: (title: any) => title,
+      },
+    },
   });
 
   // Child module
@@ -147,12 +143,12 @@ test("basic", async () => {
           injector.get(Logger).log();
 
           return injector.get(Comments).all();
-        }
+        },
       },
       Comment: {
-        text: (text: any) => text
-      }
-    }
+        text: (text: any) => text,
+      },
+    },
   });
 
   // root module as application
@@ -162,15 +158,15 @@ test("basic", async () => {
       Logger,
       {
         provide: Test,
-        useValue: "global"
-      }
-    ]
+        useValue: "global",
+      },
+    ],
   });
 
   // create schema
   const schema = makeExecutableSchema({
     typeDefs: appModule.typeDefs,
-    resolvers: appModule.resolvers
+    resolvers: appModule.resolvers,
   });
 
   const createContext = () => appModule.context({ request: {}, response: {} });
@@ -188,14 +184,14 @@ test("basic", async () => {
   const result = await execute({
     schema,
     contextValue: createContext(),
-    document
+    document,
   });
 
   // Should resolve data correctly
   expect(result.errors).toBeUndefined();
   expect(result.data).toEqual({
-    comments: comments.map(text => ({ text })),
-    posts: posts.map(title => ({ title }))
+    comments: comments.map((text) => ({ text })),
+    posts: posts.map((title) => ({ title })),
   });
 
   // Child Injector has priority over Parent Injector
@@ -209,7 +205,7 @@ test("basic", async () => {
   await execute({
     schema,
     contextValue: createContext(),
-    document
+    document,
   });
 
   // Singleton providers should be called once
@@ -244,12 +240,12 @@ test("testModule testing util", async () => {
       Query: {
         posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
           return injector.get(Posts).all();
-        }
+        },
       },
       Post: {
-        title: (title: any) => title
-      }
-    }
+        title: (title: any) => title,
+      },
+    },
   });
 
   const mockedModule = testModule(postsModule);
@@ -263,12 +259,12 @@ test("testModule testing util", async () => {
           title
         }
       }
-    `)
+    `),
   });
 
   // Should resolve data correctly
   expect(result.errors).toBeUndefined();
   expect(result.data).toEqual({
-    posts: posts.map(title => ({ title }))
+    posts: posts.map((title) => ({ title })),
   });
 });

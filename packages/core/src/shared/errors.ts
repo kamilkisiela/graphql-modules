@@ -39,7 +39,7 @@ export function useLocation({ dirname, id }: { id: ID; dirname?: string }) {
     ? `Module "${id}" located at ${dirname}`
     : [
         `Module "${id}"`,
-        `Hint: pass __dirname to "dirname" option of your modules to get more insightful errors :)`
+        `Hint: pass __dirname to "dirname" option of your modules to get more insightful errors :)`,
       ].join("\n");
 }
 

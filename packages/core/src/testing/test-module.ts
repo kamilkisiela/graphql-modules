@@ -10,16 +10,16 @@ export function testModule(
   const extensions: string[] = [];
 
   // List all object types
-  module.typeDefs.forEach(doc => {
+  module.typeDefs.forEach((doc) => {
     visit(doc, {
       ObjectTypeDefinition(node) {
         types.push(node.name.value);
-      }
+      },
     });
   });
 
   // turn object type extensions into object types
-  module.typeDefs = module.typeDefs.map(doc => {
+  module.typeDefs = module.typeDefs.map((doc) => {
     return visit(doc, {
       ObjectTypeExtension(node) {
         // only if object type doesn't exist
@@ -32,14 +32,14 @@ export function testModule(
 
         return {
           ...node,
-          kind: Kind.OBJECT_TYPE_DEFINITION
+          kind: Kind.OBJECT_TYPE_DEFINITION,
         } as ObjectTypeDefinitionNode;
-      }
+      },
     });
   });
 
   return createApp({
     ...(config || {}),
-    modules: [module] // TODO: we should use a factory here
+    modules: [module], // TODO: we should use a factory here
   });
 }

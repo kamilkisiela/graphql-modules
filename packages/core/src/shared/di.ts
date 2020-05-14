@@ -9,5 +9,5 @@ export {
   ValueProvider,
   TypeProvider,
   forwardRef,
-  InjectionToken
+  InjectionToken,
 } from "@graphql-modules/di";

@@ -7,7 +7,7 @@ const forwardRefSymbol = Symbol("__forward_ref__");
 
 export function forwardRef<T>(forwardRefFn: ForwardRefFn<T>) {
   (forwardRefFn as any)[forwardRefSymbol] = forwardRef;
-  (<any>forwardRefFn).toString = function() {
+  (<any>forwardRefFn).toString = function () {
     return stringify(this());
   };
   return <Type<any>>(<any>forwardRefFn);

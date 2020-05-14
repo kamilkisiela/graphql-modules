@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.json && bob build",
     "test": "jest",
-    "format": "prettier --write {packages,apps}/**/*.{js,json,css,md,ts,tsx}",
+    "format": "prettier --write \"packages/**/*.{js,json,css,md,ts,tsx}\"",
     "benchmark:basic": "ts-node --project tsconfig.benchmark.json benchmark/basic.case.ts"
   },
   "devDependencies": {

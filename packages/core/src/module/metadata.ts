@@ -30,7 +30,7 @@ export function metadataFactory(
       ObjectTypeDefinition(node) {
         if (node.fields) {
           implementedTypes[node.name.value] = node.fields.map(
-            field => field.name.value
+            (field) => field.name.value
           );
         }
       },
@@ -38,7 +38,7 @@ export function metadataFactory(
         if (node.fields) {
           extendedTypes[node.name.value] = [];
 
-          node.fields.forEach(field => {
+          node.fields.forEach((field) => {
             extendedTypes[node.name.value].push(field.name.value);
           });
         }
@@ -50,11 +50,11 @@ export function metadataFactory(
     id: config.id,
     typeDefs,
     implements: {
-      types: implementedTypes
+      types: implementedTypes,
     },
     extends: {
-      types: extendedTypes
+      types: extendedTypes,
     },
-    dirname: config.dirname
+    dirname: config.dirname,
   };
 }
