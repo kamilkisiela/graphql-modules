@@ -11,4 +11,9 @@ export {
   TypeProvider,
   forwardRef,
   InjectionToken,
+  Scope,
 } from "@graphql-modules/di";
+
+export interface OnDestroy {
+  onDestroy(): void;
+}

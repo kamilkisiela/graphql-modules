@@ -3,5 +3,6 @@
   "compilerOptions": {
     "module": "commonjs",
     "types": ["node"]
-  }
+  },
+  "include": ["packages", "benchmark", "examples"]
 }
