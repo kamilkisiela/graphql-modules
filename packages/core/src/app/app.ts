@@ -105,6 +105,16 @@ export function createApp(config: AppConfig): GraphQLApp {
     const contextCache: Record<ID, ModuleContext> = {};
     let providersToDestroy: Array<[ReflectiveInjector, number]> = [];
 
+    function registerProvidersToDestroy(injector: ReflectiveInjector) {
+      injector._providers.forEach((provider) => {
+        if (provider.factory.hasOnDestroyHook) {
+          // keep provider key's id (it doesn't change over time)
+          // and related injector
+          providersToDestroy.push([injector, provider.key.id]);
+        }
+      });
+    }
+
     const appContextInjector = ReflectiveInjector.create(
       "App (Operation Scope)",
       appOperationProviders.concat(
@@ -120,13 +130,7 @@ export function createApp(config: AppConfig): GraphQLApp {
       appInjector
     );
 
-    appContextInjector._providers.forEach((provider) => {
-      if (provider.factory.hasOnDestroyHook) {
-        // keep provider key's id (it doesn't change over time)
-        // and related injector
-        providersToDestroy.push([appContextInjector, provider.key.id]);
-      }
-    });
+    registerProvidersToDestroy(appContextInjector);
 
     return {
       onDestroy() {
@@ -154,16 +158,7 @@ export function createApp(config: AppConfig): GraphQLApp {
               appContextInjector
             );
 
-            moduleContextInjector._providers.forEach((provider) => {
-              if (provider.factory.hasOnDestroyHook) {
-                // keep provider key's id (it doesn't change over time)
-                // and related injector
-                providersToDestroy.push([
-                  moduleContextInjector,
-                  provider.key.id,
-                ]);
-              }
-            });
+            registerProvidersToDestroy(moduleContextInjector);
 
             contextCache[moduleId] = {
               ...ctx,
