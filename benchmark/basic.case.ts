@@ -119,14 +119,14 @@ async function graphql(schema: GraphQLSchema, executeFn: typeof execute) {
 
 // add tests
 suite
+  .add("GraphQL Modules w DI", async () => {
+    await graphql(appWithDI.schema, appWithDI.createExecution());
+  })
   .add("GraphQL-JS", async () => {
     await graphql(pureSchema, execute);
   })
   .add("GraphQL Modules w/o DI", async () => {
     await graphql(app.schema, app.createExecution());
-  })
-  .add("GraphQL Modules w DI", async () => {
-    await graphql(appWithDI.schema, app.createExecution());
   })
   .on("cycle", (event: any) => {
     console.log(String(event.target));
