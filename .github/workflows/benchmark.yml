@@ -1,10 +1,10 @@
-name: CI
+name: Benchmark
 
 on: [push]
 
 jobs:
   Benchmark:
-    name: Test on node ${{ matrix.node_version }}
+    name: Benchmark on node ${{ matrix.node_version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
