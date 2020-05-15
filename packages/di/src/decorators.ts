@@ -3,6 +3,7 @@ import {
   INJECTABLE,
   InjectableMetadata,
   readInjectableMetadata,
+  ensureInjectableMetadata,
 } from "./metadata";
 import { Injector } from "./injector";
 
@@ -55,13 +56,7 @@ export function ExecutionContext(): PropertyDecorator {
   return (obj, propertyKey) => {
     const target = obj.constructor;
 
-    if (!readInjectableMetadata(target as any)) {
-      const meta: InjectableMetadata = {
-        params: [],
-      };
-
-      (target as any)[INJECTABLE] = meta;
-    }
+    ensureInjectableMetadata(target as any);
 
     const meta = readInjectableMetadata(target as any);
 
