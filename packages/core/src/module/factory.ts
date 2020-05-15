@@ -34,7 +34,8 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
         config.providers
       );
 
-      const injector = new ReflectiveInjector(
+      const injector = ReflectiveInjector.create(
+        `Module "${config.id}" (Singleton Scope)`,
         resolvedModule.singletonProviders.concat({
           provide: MODULE_ID,
           useValue: config.id,

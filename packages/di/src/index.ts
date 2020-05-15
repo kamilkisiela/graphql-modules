@@ -1,4 +1,4 @@
-export { Injectable, Optional, Inject } from "./decorators";
+export { Injectable, Optional, Inject, ExecutionContext } from "./decorators";
 export { forwardRef } from "./forward-ref";
 export {
   InjectionToken,
@@ -11,7 +11,7 @@ export {
   FactoryProvider,
   TypeProvider,
   ProviderOptions,
-  ProviderScope,
+  Scope,
   onlySingletonProviders,
   onlyOperationProviders,
 } from "./providers";

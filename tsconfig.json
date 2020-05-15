@@ -29,7 +29,8 @@
     "paths": {
       "graphql-modules": ["packages/graphql-modules/src/index.ts"],
       "@graphql-modules/core": ["packages/core/src/index.ts"],
-      "@graphql-modules/di": ["packages/di/src/index.ts"]
+      "@graphql-modules/di": ["packages/di/src/index.ts"],
+      "@graphql-modules/example-basic": ["examples/basic/src/index.ts"]
     }
   },
   "include": ["packages"]

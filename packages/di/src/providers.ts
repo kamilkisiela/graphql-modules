@@ -55,10 +55,11 @@ export type Provider<T = any> =
   | FactoryProvider<T>;
 
 export interface ProviderOptions {
-  scope?: ProviderScope;
+  scope?: Scope;
+  executionContextIn?: Array<string | symbol>;
 }
 
-export enum ProviderScope {
+export enum Scope {
   Singleton,
   Operation,
 }
@@ -67,9 +68,9 @@ export function onlySingletonProviders(providers: Provider[] = []): Provider[] {
   return providers.filter((provider) => {
     if (isType(provider)) {
       const { options } = readInjectableMetadata(provider);
-      return !options || options.scope === ProviderScope.Singleton;
+      return options?.scope !== Scope.Operation;
     } else {
-      return provider.scope !== ProviderScope.Operation;
+      return provider.scope !== Scope.Operation;
     }
   });
 }
@@ -78,9 +79,9 @@ export function onlyOperationProviders(providers: Provider[] = []): Provider[] {
   return providers.filter((provider) => {
     if (isType(provider)) {
       const { options } = readInjectableMetadata(provider);
-      return options && options.scope === ProviderScope.Operation;
+      return options?.scope === Scope.Operation;
     } else {
-      return provider.scope === ProviderScope.Operation;
+      return provider.scope === Scope.Operation;
     }
   });
 }

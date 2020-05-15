@@ -23,7 +23,7 @@ export class ResolvedProvider {
   constructor(public key: Key, public factory: ResolvedFactory) {}
 }
 
-class ResolvedFactory {
+export class ResolvedFactory {
   constructor(
     /**
      * Factory function which can return an instance of an object represented by a key.
@@ -32,7 +32,15 @@ class ResolvedFactory {
     /**
      * Arguments (dependencies) to the `factory` function.
      */
-    public dependencies: Dependency[]
+    public dependencies: Dependency[],
+    /**
+     * Methods invoked within ExecutionContext.
+     */
+    public executionContextIn: Array<string | symbol>,
+    /**
+     * Has onDestroy hook
+     */
+    public hasOnDestroyHook: boolean
   ) {}
 }
 
@@ -97,29 +105,61 @@ function normalizeProviders(
 function resolveFactory(provider: NormalizedProvider): ResolvedFactory {
   let factoryFn: Function;
   let resolvedDeps: Dependency[] = _EMPTY_LIST;
+  let executionContextIn: Array<string | symbol> = _EMPTY_LIST;
+  let hasOnDestroyHook = false;
+
   if (isClassProvider(provider)) {
     const useClass = resolveForwardRef(provider.useClass);
+
     factoryFn = makeFactory(useClass);
     resolvedDeps = dependenciesFor(useClass);
+    executionContextIn = executionContextInFor(useClass);
+    hasOnDestroyHook = typeof useClass.prototype.onDestroy === "function";
   } else if (isFactoryProvider(provider)) {
     factoryFn = provider.useFactory;
     resolvedDeps = constructDependencies(provider.useFactory, []);
+
+    if (provider.executionContextIn) {
+      executionContextIn = provider.executionContextIn;
+    }
   } else {
     factoryFn = () => provider.useValue;
     resolvedDeps = _EMPTY_LIST;
   }
-  return new ResolvedFactory(factoryFn, resolvedDeps);
+
+  return new ResolvedFactory(
+    factoryFn,
+    resolvedDeps,
+    executionContextIn,
+    hasOnDestroyHook
+  );
 }
 
 function dependenciesFor(type: any): Dependency[] {
   const { params } = readInjectableMetadata(type);
 
-  if (!params) return [];
+  if (!params) {
+    return [];
+  }
+
   if (params.some((p) => p == null)) {
     throw noAnnotationError(type, params);
   }
 
   return params.map((p) => extractToken(p, params));
+}
+
+function executionContextInFor(type: any): Array<string | symbol> {
+  const { options } = readInjectableMetadata(type);
+
+  if (
+    options?.executionContextIn &&
+    options.executionContextIn !== _EMPTY_LIST
+  ) {
+    return options?.executionContextIn;
+  }
+
+  return [];
 }
 
 function constructDependencies(

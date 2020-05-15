@@ -1,5 +1,10 @@
 import { Type, InjectionToken, Provider } from "./providers";
-import { ResolvedProvider, resolveProviders, Dependency } from "./resolution";
+import {
+  ResolvedProvider,
+  ResolvedFactory,
+  resolveProviders,
+  Dependency,
+} from "./resolution";
 import { Key } from "./registry";
 import {
   noProviderError,
@@ -17,22 +22,27 @@ export abstract class Injector {
 }
 
 export class ReflectiveInjector implements Injector {
+  displayName: string;
   _constructionCounter: number = 0;
-  private _parent: Injector | null;
-  private _fallbackParent: Injector | null;
-  private _providers: ResolvedProvider[];
+  _providers: ResolvedProvider[];
+  _executionContextGetter?: () => any;
 
+  private _fallbackParent: Injector | null;
+  private _parent: Injector | null;
+  private _instantiated = false;
   private _keyIds: number[];
   private _objs: any[];
 
   constructor(
-    providers: Provider[],
-    parent?: Injector,
-    fallbackParent?: Injector
+    name: string,
+    providers: ResolvedProvider[],
+    parent?: Injector | null,
+    fallbackParent?: Injector | null
   ) {
+    this.displayName = name;
     this._parent = parent || null;
     this._fallbackParent = fallbackParent || null;
-    this._providers = resolveProviders(providers);
+    this._providers = providers;
 
     const len = this._providers.length;
 
@@ -45,8 +55,86 @@ export class ReflectiveInjector implements Injector {
     }
   }
 
+  static create(
+    name: string,
+    providers: Provider[],
+    parent?: Injector,
+    fallbackParent?: Injector
+  ) {
+    return new ReflectiveInjector(
+      name,
+      resolveProviders(providers),
+      parent,
+      fallbackParent
+    );
+  }
+
+  static createWithExecutionContext(
+    injector: ReflectiveInjector,
+    executionContextGetter: () => any
+  ) {
+    if (!injector._instantiated) {
+      throw new Error(
+        "Internal: Received Injector is not instantiated. Should call instantiateAll() method."
+      );
+    }
+
+    const proxied: number[] = [];
+    const providers = injector._providers.map((provider, i) => {
+      if (provider.factory.executionContextIn.length) {
+        proxied.push(i);
+
+        function proxyFactory() {
+          return new Proxy(injector.get(provider.key.token), {
+            get(target, propertyKey) {
+              if (
+                typeof propertyKey !== "number" &&
+                provider.factory.executionContextIn.includes(propertyKey)
+              ) {
+                return executionContextGetter();
+              }
+
+              return target[propertyKey];
+            },
+          });
+        }
+
+        return new ResolvedProvider(
+          provider.key,
+          new ResolvedFactory(proxyFactory, [], [], false)
+        );
+      }
+
+      return provider;
+    });
+
+    const newInjector = new ReflectiveInjector(
+      injector.displayName + " (Proxy)",
+      providers,
+      injector.parent,
+      injector.fallbackParent
+    );
+
+    newInjector._objs = [...injector._objs];
+
+    proxied.forEach((i) => {
+      newInjector._objs[i] = UNDEFINED;
+    });
+    newInjector.instantiateAll();
+
+    return newInjector;
+  }
+
   get parent(): Injector | null {
     return this._parent;
+  }
+
+  get fallbackParent(): Injector | null {
+    return this._fallbackParent;
+  }
+
+  get instantiated() {
+    return this._instantiated;
   }
 
   get(token: any, notFoundValue: any = THROW_IF_NOT_FOUND): any {
@@ -57,6 +145,7 @@ export class ReflectiveInjector implements Injector {
     this._providers.forEach((provider) => {
       this.get(provider.key);
     });
+    this._instantiated = true;
   }
 
   private _getByKey(key: Key, notFoundValue: any): any {
@@ -99,7 +188,17 @@ export class ReflectiveInjector implements Injector {
     return this._throwOrNull(key, notFoundValue);
   }
 
-  private _getObjByKeyId(keyId: number): any {
+  _isObjectDefinedByKeyId(keyId: number): boolean {
+    for (let i = 0; i < this._keyIds.length; i++) {
+      if (this._keyIds[i] === keyId) {
+        return this._objs[i] !== UNDEFINED;
+      }
+    }
+
+    return false;
+  }
+
+  _getObjByKeyId(keyId: number): any {
     for (let i = 0; i < this._keyIds.length; i++) {
       if (this._keyIds[i] === keyId) {
         if (this._objs[i] === UNDEFINED) {

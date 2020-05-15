@@ -1,0 +1,14 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      rampTo: 50
+    - duration: 60
+      arrivalRate: 50
+scenarios:
+  - flow:
+      - post:
+          url: "/graphql"
+          json:
+            query: "{ posts { id title } }"

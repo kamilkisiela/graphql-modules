@@ -15,3 +15,13 @@ export interface InjectableMetadata {
 export function readInjectableMetadata(type: Type<any>): InjectableMetadata {
   return (type as any)[INJECTABLE];
 }
+
+export function ensureInjectableMetadata(type: Type<any>) {
+  if (!readInjectableMetadata(type)) {
+    const meta: InjectableMetadata = {
+      params: [],
+    };
+
+    (type as any)[INJECTABLE] = meta;
+  }
+}

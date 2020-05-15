@@ -4,11 +4,15 @@ import {
   createModule,
   MODULE_ID,
   ModuleContext,
-  testModule,
 } from "@graphql-modules/core";
-import { Injectable, InjectionToken, ProviderScope } from "@graphql-modules/di";
+import {
+  Injectable,
+  InjectionToken,
+  Scope,
+  ExecutionContext,
+} from "@graphql-modules/di";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import { execute, parse } from "graphql";
+import { parse } from "graphql";
 
 const Test = new InjectionToken<string>("test");
 
@@ -32,7 +36,7 @@ test("basic", async () => {
   };
 
   @Injectable({
-    scope: ProviderScope.Operation,
+    scope: Scope.Operation,
   })
   class Logger {
     constructor() {
@@ -43,7 +47,7 @@ test("basic", async () => {
   }
 
   @Injectable({
-    scope: ProviderScope.Operation,
+    scope: Scope.Operation,
   })
   class Events {
     constructor() {
@@ -169,7 +173,7 @@ test("basic", async () => {
     resolvers: appModule.resolvers,
   });
 
-  const createContext = () => appModule.context({ request: {}, response: {} });
+  const createContext = () => ({ request: {}, response: {} });
   const document = parse(/* GraphQL */ `
     {
       comments {
@@ -181,7 +185,7 @@ test("basic", async () => {
     }
   `);
 
-  const result = await execute({
+  const result = await appModule.createExecution()({
     schema,
     contextValue: createContext(),
     document,
@@ -202,7 +206,7 @@ test("basic", async () => {
   expect(spies.posts.moduleId).toHaveBeenCalledWith("posts");
   expect(spies.comments.moduleId).toHaveBeenCalledWith("comments");
 
-  await execute({
+  await appModule.createExecution()({
     schema,
     contextValue: createContext(),
     document,
@@ -217,22 +221,57 @@ test("basic", async () => {
   expect(spies.logger).toHaveBeenCalledTimes(2);
 });
 
-test("testModule testing util", async () => {
-  @Injectable()
+test("ExecutionContext on module level provider", async () => {
+  const spies = {
+    posts: jest.fn(),
+    connection: jest.fn(),
+    connectionId: jest.fn(),
+  };
+
+  @Injectable({
+    scope: Scope.Singleton,
+  })
   class Posts {
+    @ExecutionContext()
+    context!: ExecutionContext;
+
+    constructor() {
+      spies.posts();
+    }
+
+    all() {
+      const connection = this.context.injector.get(PostsConnection);
+      spies.connectionId(connection.id);
+
+      return connection.all();
+    }
+  }
+
+  @Injectable({
+    scope: Scope.Operation,
+  })
+  class PostsConnection {
+    id: number;
+
+    constructor() {
+      spies.connection();
+      this.id = Math.random();
+    }
+
     all() {
       return posts;
     }
   }
+
   const postsModule = createModule({
     id: "posts",
-    providers: [Posts],
+    providers: [Posts, PostsConnection],
     typeDefs: /* GraphQL */ `
       type Post {
         title: String!
       }
 
-      extend type Query {
+      type Query {
         posts: [Post!]!
       }
     `,
@@ -248,23 +287,196 @@ test("testModule testing util", async () => {
     },
   });
 
-  const mockedModule = testModule(postsModule);
+  const app = createApp({
+    modules: [postsModule],
+  });
 
-  const result = await execute({
-    schema: mockedModule.schema,
-    contextValue: mockedModule.context({ request: {}, response: {} }),
-    document: parse(/* GraphQL */ `
-      {
-        posts {
-          title
-        }
+  const createContext = () => ({ request: {}, response: {} });
+  const document = parse(/* GraphQL */ `
+    {
+      posts {
+        title
       }
-    `),
+    }
+  `);
+
+  const data = {
+    posts: posts.map((title) => ({ title })),
+  };
+
+  const result1 = await app.createExecution()({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
   });
 
-  // Should resolve data correctly
-  expect(result.errors).toBeUndefined();
-  expect(result.data).toEqual({
-    posts: posts.map((title) => ({ title })),
+  expect(result1.data).toEqual(data);
+
+  const result2 = await app.createExecution()({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
   });
+
+  expect(result2.data).toEqual(data);
+
+  expect(spies.posts).toBeCalledTimes(1);
+  expect(spies.connection).toBeCalledTimes(2);
+  expect(spies.connectionId).toBeCalledTimes(2);
+
+  // ExecutionContext accessed in two executions
+  // should equal two different connections
+  expect(spies.connectionId.mock.calls[0][0]).not.toEqual(
+    spies.connectionId.mock.calls[1][0]
+  );
 });
+
+test("OnDestroy hook", async () => {
+  const spies = {
+    onDestroy: jest.fn(),
+  };
+
+  @Injectable({
+    scope: Scope.Singleton,
+  })
+  class Posts {
+    @ExecutionContext()
+    context!: ExecutionContext;
+
+    all() {
+      const connection = this.context.injector.get(PostsConnection);
+
+      return connection.all();
+    }
+  }
+
+  @Injectable({
+    scope: Scope.Operation,
+  })
+  class PostsConnection {
+    id: number;
+
+    constructor() {
+      this.id = Math.random();
+    }
+
+    all() {
+      return posts;
+    }
+
+    onDestroy() {
+      spies.onDestroy();
+    }
+  }
+
+  const postsModule = createModule({
+    id: "posts",
+    providers: [Posts, PostsConnection],
+    typeDefs: /* GraphQL */ `
+      type Post {
+        title: String!
+      }
+
+      type Query {
+        posts: [Post!]!
+      }
+    `,
+    resolvers: {
+      Query: {
+        posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
+          return injector.get(Posts).all();
+        },
+      },
+      Post: {
+        title: (title: any) => title,
+      },
+    },
+  });
+
+  const app = createApp({
+    modules: [postsModule],
+  });
+
+  const createContext = () => ({ request: {}, response: {} });
+  const document = parse(/* GraphQL */ `
+    {
+      posts {
+        title
+      }
+    }
+  `);
+
+  const data = {
+    posts: posts.map((title) => ({ title })),
+  };
+
+  const result1 = await app.createExecution()({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
+  });
+
+  expect(result1.data).toEqual(data);
+  expect(spies.onDestroy).toBeCalledTimes(1);
+
+  const result2 = await app.createExecution()({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
+  });
+
+  expect(result2.data).toEqual(data)
+  expect(spies.onDestroy).toBeCalledTimes(2);
+});
+
+// test("testModule testing util", async () => {
+//   @Injectable()
+//   class Posts {
+//     all() {
+//       return posts;
+//     }
+//   }
+//   const postsModule = createModule({
+//     id: "posts",
+//     providers: [Posts],
+//     typeDefs: /* GraphQL */ `
+//       type Post {
+//         title: String!
+//       }
+
+//       extend type Query {
+//         posts: [Post!]!
+//       }
+//     `,
+//     resolvers: {
+//       Query: {
+//         posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
+//           return injector.get(Posts).all();
+//         },
+//       },
+//       Post: {
+//         title: (title: any) => title,
+//       },
+//     },
+//   });
+
+//   const mockedModule = testModule(postsModule);
+
+//   const result = await execute({
+//     schema: mockedModule.schema,
+//     contextValue: mockedModule.context({ request: {}, response: {} }),
+//     document: parse(/* GraphQL */ `
+//       {
+//         posts {
+//           title
+//         }
+//       }
+//     `),
+//   });
+
+//   // Should resolve data correctly
+//   expect(result.errors).toBeUndefined();
+//   expect(result.data).toEqual({
+//     posts: posts.map((title) => ({ title })),
+//   });
+// });

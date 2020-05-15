@@ -1,5 +1,6 @@
 {
-  "name": "@graphql-modules/core",
+  "private": true,
+  "name": "@graphql-modules/example-basic",
   "version": "0.0.0-PLACEHOLDER",
   "author": "Kamil Kisiela",
   "license": "MIT",
@@ -17,12 +18,6 @@
     "graphql": "^14.0.0 || ^15.0.0"
   },
   "dependencies": {
-    "@graphql-modules/di": "0.0.0-PLACEHOLDER",
-    "@graphql-tools/schema": "5.0.1-alpha-e22446c.0",
-    "ramda": "0.27.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "directory": "dist"
+    "graphql-modules": "0.0.0-PLACEHOLDER"
   }
 }
