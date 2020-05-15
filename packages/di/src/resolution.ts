@@ -36,7 +36,11 @@ export class ResolvedFactory {
     /**
      * Methods invoked within ExecutionContext.
      */
-    public executionContextIn: Array<string | symbol>
+    public executionContextIn: Array<string | symbol>,
+    /**
+     * Has onDestroy hook
+     */
+    public hasOnDestroyHook: boolean
   ) {}
 }
 
@@ -102,6 +106,7 @@ function resolveFactory(provider: NormalizedProvider): ResolvedFactory {
   let factoryFn: Function;
   let resolvedDeps: Dependency[] = _EMPTY_LIST;
   let executionContextIn: Array<string | symbol> = _EMPTY_LIST;
+  let hasOnDestroyHook = false;
 
   if (isClassProvider(provider)) {
     const useClass = resolveForwardRef(provider.useClass);
@@ -109,6 +114,7 @@ function resolveFactory(provider: NormalizedProvider): ResolvedFactory {
     factoryFn = makeFactory(useClass);
     resolvedDeps = dependenciesFor(useClass);
     executionContextIn = executionContextInFor(useClass);
+    hasOnDestroyHook = typeof useClass.prototype.onDestroy === "function";
   } else if (isFactoryProvider(provider)) {
     factoryFn = provider.useFactory;
     resolvedDeps = constructDependencies(provider.useFactory, []);
@@ -121,7 +127,12 @@ function resolveFactory(provider: NormalizedProvider): ResolvedFactory {
     resolvedDeps = _EMPTY_LIST;
   }
 
-  return new ResolvedFactory(factoryFn, resolvedDeps, executionContextIn);
+  return new ResolvedFactory(
+    factoryFn,
+    resolvedDeps,
+    executionContextIn,
+    hasOnDestroyHook
+  );
 }
 
 function dependenciesFor(type: any): Dependency[] {

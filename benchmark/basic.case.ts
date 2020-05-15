@@ -86,8 +86,8 @@ const pureSchema = makeExecutableSchema({
 
 let showedError = false;
 
-async function graphql(schema: GraphQLSchema, context: any) {
-  const { data, errors } = await execute({
+async function graphql(schema: GraphQLSchema, executeFn: typeof execute) {
+  const { data, errors } = await executeFn({
     schema,
     document: parse(/* GraphQL */ `
       query getPosts {
@@ -96,7 +96,7 @@ async function graphql(schema: GraphQLSchema, context: any) {
         }
       }
     `),
-    contextValue: context({ request: {}, response: {} }),
+    contextValue: { request: {}, response: {} },
   });
 
   if (errors && !showedError) {
@@ -120,13 +120,13 @@ async function graphql(schema: GraphQLSchema, context: any) {
 // add tests
 suite
   .add("GraphQL-JS", async () => {
-    await graphql(pureSchema, () => ({}));
+    await graphql(pureSchema, execute);
   })
   .add("GraphQL Modules w/o DI", async () => {
-    await graphql(app.schema, app.context);
+    await graphql(app.schema, app.createExecution());
   })
   .add("GraphQL Modules w DI", async () => {
-    await graphql(appWithDI.schema, appWithDI.context);
+    await graphql(appWithDI.schema, app.createExecution());
   })
   .on("cycle", (event: any) => {
     console.log(String(event.target));

@@ -43,7 +43,7 @@ type Execution = {
   ): PromiseOrValue<ExecutionResult>;
 };
 
-type ContextBuilder<
+type ExecutionContextBuilder<
   TContext extends {
     request: any;
     response?: any;
@@ -52,7 +52,12 @@ type ContextBuilder<
     request: any;
     response?: any;
   }
-> = (context: TContext) => AppContext;
+> = (
+  context: TContext
+) => {
+  context: AppContext;
+  onDestroy: () => void;
+};
 
 export type GraphQLApp = {
   readonly typeDefs: DocumentNode[];
@@ -75,7 +80,7 @@ export interface AppContext {
 
 export function createApp(config: AppConfig): GraphQLApp {
   const appInjector = ReflectiveInjector.create(
-    'App (Singleton Scope)',
+    "App (Singleton Scope)",
     onlySingletonProviders(config.providers)
   );
   const appOperationProviders = onlyOperationProviders(config.providers);
@@ -96,9 +101,12 @@ export function createApp(config: AppConfig): GraphQLApp {
   const resolvers = modules.map((mod) => mod.resolvers).filter(isDefined);
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-  const contextBuilder: ContextBuilder = (context) => {
+  const contextBuilder: ExecutionContextBuilder = (context) => {
+    const contextCache: Record<ID, ModuleContext> = {};
+    let providersToDestroy: Array<[ReflectiveInjector, number]> = [];
+
     const appContextInjector = ReflectiveInjector.create(
-      'App (Operation Scope)',
+      "App (Operation Scope)",
       appOperationProviders.concat(
         {
           provide: REQUEST,
@@ -112,34 +120,60 @@ export function createApp(config: AppConfig): GraphQLApp {
       appInjector
     );
 
-    const contextCache: Record<ID, ModuleContext> = {};
+    appContextInjector._providers.forEach((provider) => {
+      if (provider.factory.hasOnDestroyHook) {
+        // keep provider key's id (it doesn't change over time)
+        // and related injector
+        providersToDestroy.push([appContextInjector, provider.key.id]);
+      }
+    });
 
     return {
-      ...(context || {}),
-      ɵgetModuleContext(moduleId, ctx) {
-        if (!contextCache[moduleId]) {
-          const providers = moduleMap.get(moduleId)?.operationProviders!;
-          const moduleInjector = moduleMap.get(moduleId)!.injector;
+      onDestroy() {
+        providersToDestroy.forEach(([injector, keyId]) => {
+          if (injector._isObjectDefinedByKeyId(keyId)) {
+            injector._getObjByKeyId(keyId).onDestroy();
+          }
+        });
+      },
+      context: {
+        ...(context || {}),
+        ɵgetModuleContext(moduleId, ctx) {
+          if (!contextCache[moduleId]) {
+            const providers = moduleMap.get(moduleId)?.operationProviders!;
+            const moduleInjector = moduleMap.get(moduleId)!.injector;
 
-          const singletonModuleInjector = ReflectiveInjector.createWithExecutionContext(
-            moduleInjector,
-            () => contextCache[moduleId]
-          );
-          const moduleContextInjector = ReflectiveInjector.create(
-            `Module "${moduleId}" (Operation Scope)`,
-            providers,
-            singletonModuleInjector,
-            appContextInjector
-          );
+            const singletonModuleInjector = ReflectiveInjector.createWithExecutionContext(
+              moduleInjector,
+              () => contextCache[moduleId]
+            );
+            const moduleContextInjector = ReflectiveInjector.create(
+              `Module "${moduleId}" (Operation Scope)`,
+              providers,
+              singletonModuleInjector,
+              appContextInjector
+            );
 
-          contextCache[moduleId] = {
-            ...ctx,
-            injector: moduleContextInjector,
-            moduleId,
-          };
-        }
+            moduleContextInjector._providers.forEach((provider) => {
+              if (provider.factory.hasOnDestroyHook) {
+                // keep provider key's id (it doesn't change over time)
+                // and related injector
+                providersToDestroy.push([
+                  moduleContextInjector,
+                  provider.key.id,
+                ]);
+              }
+            });
 
-        return contextCache[moduleId];
+            contextCache[moduleId] = {
+              ...ctx,
+              injector: moduleContextInjector,
+              moduleId,
+            };
+          }
+
+          return contextCache[moduleId];
+        },
       },
     };
   };
@@ -150,6 +184,7 @@ export function createApp(config: AppConfig): GraphQLApp {
     schema,
     createExecution(options): Execution {
       const executeFn = options?.execute || execute;
+
       return (
         argsOrSchema: ExecutionArgs | GraphQLSchema,
         document?: DocumentNode,
@@ -160,23 +195,31 @@ export function createApp(config: AppConfig): GraphQLApp {
         fieldResolver?: Maybe<GraphQLFieldResolver<any, any>>,
         typeResolver?: Maybe<GraphQLTypeResolver<any, any>>
       ) => {
-        if (isExecutionArgs(argsOrSchema)) {
-          return executeFn({
-            ...argsOrSchema,
-            contextValue: contextBuilder(argsOrSchema.contextValue),
-          });
-        }
-
-        return executeFn(
-          argsOrSchema,
-          document!,
-          rootValue,
-          contextBuilder(contextValue),
-          variableValues,
-          operationName,
-          fieldResolver,
-          typeResolver
+        const { context, onDestroy } = contextBuilder(
+          isExecutionArgs(argsOrSchema)
+            ? argsOrSchema.contextValue
+            : contextValue
         );
+
+        const executionArgs: ExecutionArgs = isExecutionArgs(argsOrSchema)
+          ? {
+              ...argsOrSchema,
+              contextValue: context,
+            }
+          : {
+              schema: argsOrSchema,
+              document: document!,
+              rootValue,
+              contextValue: context,
+              variableValues,
+              operationName,
+              fieldResolver,
+              typeResolver,
+            };
+
+        return Promise.resolve()
+          .then(() => executeFn(executionArgs))
+          .finally(onDestroy);
       };
     },
   };

@@ -101,7 +101,7 @@ export class ReflectiveInjector implements Injector {
 
         return new ResolvedProvider(
           provider.key,
-          new ResolvedFactory(proxyFactory, [], [])
+          new ResolvedFactory(proxyFactory, [], [], false)
         );
       }
 
@@ -188,7 +188,17 @@ export class ReflectiveInjector implements Injector {
     return this._throwOrNull(key, notFoundValue);
   }
 
-  private _getObjByKeyId(keyId: number): any {
+  _isObjectDefinedByKeyId(keyId: number): boolean {
+    for (let i = 0; i < this._keyIds.length; i++) {
+      if (this._keyIds[i] === keyId) {
+        return this._objs[i] !== UNDEFINED;
+      }
+    }
+
+    return false;
+  }
+
+  _getObjByKeyId(keyId: number): any {
     for (let i = 0; i < this._keyIds.length; i++) {
       if (this._keyIds[i] === keyId) {
         if (this._objs[i] === UNDEFINED) {
