@@ -34,5 +34,8 @@ jobs:
       - name: Install
         run: yarn
 
+      - name: Build
+        run: yarn build
+
       - name: Benchmark
         run: "yarn benchmark:basic"
