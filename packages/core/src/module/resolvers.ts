@@ -99,6 +99,11 @@ export function createResolvers(
   return resolvers;
 }
 
+/**
+ * Wrap a resolver so we use module's context instead of app context.
+ * Use a middleware if available.
+ * Attach metadata to a resolver (we will see if it's helpful, probably in error handling)
+ */
 function wrapResolver({
   resolver,
   config,
@@ -135,6 +140,9 @@ function wrapResolver({
   return wrappedResolver;
 }
 
+/**
+ * We iterate over every defined resolver and check if it's valid and not duplicated
+ */
 function mergeResolvers(config: ModuleConfig): Single<Resolvers> {
   if (!config.resolvers) {
     return {};
@@ -324,6 +332,12 @@ function addEnum({
   }
 }
 
+/**
+ * Helps to make sure a resolver has a corresponding type/field definition.
+ * We don't want to pass resolve function that are not related to the module.
+ *
+ * TODO: we need to make sure the entire metadata is here, right now we handle on GraphQL Objects
+ */
 function ensureImplements(metadata: ModuleMetadata) {
   return {
     type(name: string, field: string) {

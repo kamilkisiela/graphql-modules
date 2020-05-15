@@ -5,6 +5,9 @@ export type ForwardRefFn<T> = () => T;
 
 const forwardRefSymbol = Symbol("__forward_ref__");
 
+/**
+ * Useful in "circular dependencies of modules" situation
+ */
 export function forwardRef<T>(forwardRefFn: ForwardRefFn<T>) {
   (forwardRefFn as any)[forwardRefSymbol] = forwardRef;
   (<any>forwardRefFn).toString = function () {

@@ -24,9 +24,14 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
     metadata,
     typeDefs,
     providers: config.providers,
+    // Factory is called once on application creation,
+    // before we even handle GraphQL Operation
     factory(app) {
       const resolvedModule: Partial<ResolvedGraphQLModule> = mod;
 
+      // Filter providers and keep them this way
+      // so we don't do this filtering multiple times.
+      // Providers don't change over time, so it's safe to do it.
       resolvedModule.operationProviders = onlyOperationProviders(
         config.providers
       );
@@ -34,15 +39,19 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
         config.providers
       );
 
+      // Create a  module-level Singleton injector
       const injector = ReflectiveInjector.create(
         `Module "${config.id}" (Singleton Scope)`,
         resolvedModule.singletonProviders.concat({
+          // with module's id, useful in Logging and stuff
           provide: MODULE_ID,
           useValue: config.id,
         }),
         app.injector
       );
 
+      // Instantiate all providers
+      // Happens only once, on app / module creation
       injector.instantiateAll();
 
       // We attach injector property to existing `mod` object
@@ -50,6 +59,9 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
       // that are later on used in testing utils
       (resolvedModule as any).injector = injector;
 
+      // Create resolvers object based on module's config
+      // It involves wrapping a resolver with middlewares
+      // and other things like validation
       resolvedModule.resolvers = createResolvers(config, metadata, {
         resolveMiddlewareMap: app.resolveMiddlewares,
       });

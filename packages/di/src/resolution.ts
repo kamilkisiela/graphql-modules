@@ -169,6 +169,7 @@ function constructDependencies(
   if (!dependencies) {
     return dependenciesFor(typeOrFunc);
   } else {
+    // TODO: useFactory + dependencies couple doesn't work yet
     // const params: any[][] = dependencies.map(t => [t]);
     // return dependencies.map(t => _extractToken(typeOrFunc, t, params));
     return [];

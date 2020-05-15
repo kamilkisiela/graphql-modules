@@ -16,6 +16,9 @@ const _THROW_IF_NOT_FOUND = new Object();
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 const UNDEFINED = new Object();
 
+// Publicly available Injector.
+// We use ReflectiveInjector everywhere
+// but we don't want to leak its API to everyone
 export abstract class Injector {
   static THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
   abstract get<T>(token: Type<T> | InjectionToken<T>, notFoundValue?: any): T;
