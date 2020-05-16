@@ -35,11 +35,11 @@ export interface ClassProvider<T> extends BaseProvider<T> {
   useClass: Type<T>;
 }
 
-export type Factory<T> = () => T;
+export type Factory<T> = (...args: any[]) => T;
 
 export interface FactoryProvider<T> extends BaseProvider<T> {
   useFactory: Factory<T>;
-  // TODO: deps?: any[];
+  deps?: any[];
 }
 
 export interface BaseProvider<T> extends ProviderOptions {

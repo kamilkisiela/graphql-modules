@@ -425,8 +425,113 @@ test("OnDestroy hook", async () => {
     document,
   });
 
-  expect(result2.data).toEqual(data)
+  expect(result2.data).toEqual(data);
   expect(spies.onDestroy).toBeCalledTimes(2);
+});
+
+test("useFactory with dependecies", async () => {
+  const logSpy = jest.fn();
+
+  @Injectable({
+    scope: Scope.Singleton,
+  })
+  class Posts {
+    @ExecutionContext()
+    context!: ExecutionContext;
+
+    all() {
+      const connection = this.context.injector.get(PostsConnection);
+
+      return connection.all();
+    }
+  }
+
+  class PostsConnection {
+    constructor(logger: Logger) {
+      logger.log();
+    }
+
+    all() {
+      return posts;
+    }
+  }
+
+  @Injectable()
+  class Logger {
+    log() {
+      logSpy();
+    }
+  }
+
+  const postsModule = createModule({
+    id: "posts",
+    providers: [
+      Logger,
+      Posts,
+      {
+        provide: PostsConnection,
+        scope: Scope.Operation,
+        useFactory(logger: Logger) {
+          return new PostsConnection(logger);
+        },
+        deps: [Logger],
+      },
+    ],
+    typeDefs: /* GraphQL */ `
+      type Post {
+        title: String!
+      }
+
+      type Query {
+        posts: [Post!]!
+      }
+    `,
+    resolvers: {
+      Query: {
+        posts(_parent: {}, __args: {}, { injector }: ModuleContext) {
+          return injector.get(Posts).all();
+        },
+      },
+      Post: {
+        title: (title: any) => title,
+      },
+    },
+  });
+
+  const app = createApp({
+    modules: [postsModule],
+  });
+
+  const createContext = () => ({ request: {}, response: {} });
+  const document = parse(/* GraphQL */ `
+    {
+      posts {
+        title
+      }
+    }
+  `);
+
+  const data = {
+    posts: posts.map((title) => ({ title })),
+  };
+
+  const result1 = await app.createExecution()({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
+  });
+
+  expect(result1.data).toEqual(data);
+  expect(logSpy).toHaveBeenCalledTimes(1);
+
+  const result2 = await app.createExecution()({
+    schema: app.schema,
+    contextValue: createContext(),
+    document,
+  });
+
+  expect(result2.data).toEqual(data);
+  expect(logSpy).toHaveBeenCalledTimes(2);
 });
 
 // test("testModule testing util", async () => {

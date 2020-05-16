@@ -335,8 +335,6 @@ function addEnum({
 /**
  * Helps to make sure a resolver has a corresponding type/field definition.
  * We don't want to pass resolve function that are not related to the module.
- *
- * TODO: we need to make sure the entire metadata is here, right now we handle on GraphQL Objects
  */
 function ensureImplements(metadata: ModuleMetadata) {
   return {
