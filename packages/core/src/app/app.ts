@@ -55,7 +55,7 @@ type ExecutionContextBuilder<
 > = (
   context: TContext
 ) => {
-  context: AppContext;
+  context: InternalAppContext;
   onDestroy: () => void;
 };
 
@@ -77,7 +77,7 @@ export type ModulesMap = Map<ID, ResolvedGraphQLModule>;
 /**
  * @internal
  */
-export interface AppContext {
+export interface InternalAppContext {
   ɵgetModuleContext(moduleId: ID, context: any): ModuleContext;
 }
 

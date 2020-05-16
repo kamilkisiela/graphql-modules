@@ -1,12 +1,19 @@
-import { DocumentNode, visit } from "graphql";
+import {
+  DocumentNode,
+  visit,
+  ObjectTypeDefinitionNode,
+  ObjectTypeExtensionNode,
+  InterfaceTypeDefinitionNode,
+  InterfaceTypeExtensionNode,
+  InputObjectTypeDefinitionNode,
+  InputObjectTypeExtensionNode,
+  FieldDefinitionNode,
+  InputValueDefinitionNode,
+} from "graphql";
 import { ModuleConfig } from "./module";
 import { ID } from "../shared/types";
 
-export type TypesRegistry = Record<string, string[]>; // we need unions and other kinds
-
-export type Registry = {
-  types?: TypesRegistry;
-};
+export type Registry = Record<string, string[]>;
 
 export interface ModuleMetadata {
   id: ID;
@@ -20,28 +27,104 @@ export function metadataFactory(
   typeDefs: DocumentNode[],
   config: ModuleConfig
 ): ModuleMetadata {
-  const implementedTypes: TypesRegistry = {};
-  const extendedTypes: TypesRegistry = {};
+  const implemented: Registry = {};
+  const extended: Registry = {};
+
+  function collectObjectDefinition(
+    node:
+      | ObjectTypeDefinitionNode
+      | InterfaceTypeDefinitionNode
+      | InputObjectTypeDefinitionNode
+  ) {
+    if (node.fields) {
+      implemented[node.name.value] = (node.fields as Array<
+        InputValueDefinitionNode | FieldDefinitionNode
+      >).map((field) => field.name.value);
+    }
+  }
+
+  function collectObjectExtension(
+    node:
+      | ObjectTypeExtensionNode
+      | InterfaceTypeExtensionNode
+      | InputObjectTypeExtensionNode
+  ) {
+    if (node.fields) {
+      extended[node.name.value] = [];
+
+      (node.fields as Array<
+        InputValueDefinitionNode | FieldDefinitionNode
+      >).forEach((field) => {
+        extended[node.name.value].push(field.name.value);
+      });
+    }
+  }
 
   for (const doc of typeDefs) {
     // TODO: not only GraphQLObjects
     visit(doc, {
-      // GraphQLObject
+      // Object
       ObjectTypeDefinition(node) {
-        if (node.fields) {
-          implementedTypes[node.name.value] = node.fields.map(
-            (field) => field.name.value
+        collectObjectDefinition(node);
+      },
+      ObjectTypeExtension(node) {
+        collectObjectExtension(node);
+      },
+      // Interface
+      InterfaceTypeDefinition(node) {
+        collectObjectDefinition(node);
+      },
+      InterfaceTypeExtension(node) {
+        collectObjectExtension(node);
+      },
+      // Union
+      UnionTypeDefinition(node) {
+        if (node.types) {
+          implemented[node.name.value] = node.types.map(
+            (type) => type.name.value
           );
         }
       },
-      ObjectTypeExtension(node) {
-        if (node.fields) {
-          extendedTypes[node.name.value] = [];
+      UnionTypeExtension(node) {
+        if (node.types) {
+          if (!extended[node.name.value]) {
+            extended[node.name.value] = [];
+          }
 
-          node.fields.forEach((field) => {
-            extendedTypes[node.name.value].push(field.name.value);
-          });
+          extended[node.name.value].push(
+            ...node.types.map((type) => type.name.value)
+          );
         }
+      },
+      // Input
+      InputObjectTypeDefinition(node) {
+        collectObjectDefinition(node);
+      },
+      InputObjectTypeExtension(node) {
+        collectObjectExtension(node);
+      },
+      // Enum
+      EnumTypeDefinition(node) {
+        if (node.values) {
+          implemented[node.name.value] = node.values.map(
+            (value) => value.name.value
+          );
+        }
+      },
+      EnumTypeExtension(node) {
+        if (node.values) {
+          extended[node.name.value] = node.values.map(
+            (value) => value.name.value
+          );
+        }
+      },
+      // Scalar
+      ScalarTypeDefinition(node) {
+        if (!implemented.__scalars) {
+          implemented.__scalars = [];
+        }
+
+        implemented.__scalars.push(node.name.value);
       },
     });
   }
@@ -49,12 +132,8 @@ export function metadataFactory(
   return {
     id: config.id,
     typeDefs,
-    implements: {
-      types: implementedTypes,
-    },
-    extends: {
-      types: extendedTypes,
-    },
+    implements: implemented,
+    extends: extended,
     dirname: config.dirname,
   };
 }
