@@ -2,7 +2,7 @@ import { ModuleConfig } from "./module";
 import { GraphQLResolveInfo, GraphQLScalarType } from "graphql";
 import { Resolvers } from "./types";
 import { ModuleMetadata } from "./metadata";
-import { AppContext } from "./../app/app";
+import { InternalAppContext } from "./../app/app";
 import { Single, ResolveFn, ID } from "./../shared/types";
 import {
   useLocation,
@@ -117,7 +117,7 @@ function wrapResolver({
 }) {
   const middleware = createResolveMiddleware(path, middlewareMap);
 
-  const wrappedResolver: ResolveFn<AppContext> = (
+  const wrappedResolver: ResolveFn<InternalAppContext> = (
     root,
     args,
     context,
@@ -343,15 +343,13 @@ function ensureImplements(metadata: ModuleMetadata) {
     type(name: string, field: string) {
       const type: string[] = []
         .concat(
-          metadata.implements?.types?.[name] as any,
-          metadata.extends?.types?.[name] as any
+          metadata.implements?.[name] as any,
+          metadata.extends?.[name] as any
         )
         .filter(isDefined);
 
-      if (type) {
-        if (type.includes(field)) {
-          return true;
-        }
+      if (type?.includes(field)) {
+        return true;
       }
 
       const id = `"${name}.${field}"`;
@@ -359,6 +357,17 @@ function ensureImplements(metadata: ModuleMetadata) {
       throw new ExtraResolverError(
         `Resolver of "${id}" type cannot be implemented`,
         `${id} is not defined`,
+        useLocation({ dirname: metadata.dirname, id: metadata.id })
+      );
+    },
+    scalar(name: string) {
+      if ((metadata.implements?.__scalars || []).includes(name)) {
+        return true;
+      }
+
+      throw new ExtraResolverError(
+        `Resolver of "${name}" scalar cannot be implemented`,
+        `${name} is not defined`,
         useLocation({ dirname: metadata.dirname, id: metadata.id })
       );
     },

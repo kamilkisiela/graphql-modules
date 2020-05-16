@@ -15,10 +15,10 @@ export interface ModuleConfig {
   providers?: Provider[];
 }
 
-export interface ModuleContext {
+export type ModuleContext<T = {}> = {
   injector: Injector;
   moduleId: ID;
-}
+} & T;
 
 export interface GraphQLModule {
   id: ID;
