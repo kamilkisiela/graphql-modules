@@ -61,7 +61,6 @@ export function metadataFactory(
   }
 
   for (const doc of typeDefs) {
-    // TODO: not only GraphQLObjects
     visit(doc, {
       // Object
       ObjectTypeDefinition(node) {
