@@ -16,6 +16,7 @@ import {
   normalizeResolveMiddlewareMap,
   mergeNormalizedResolveMiddlewareMaps,
   NormalizedResolveMiddlewareMap,
+  validateResolveMiddlewareMap,
 } from "../shared/middleware";
 
 const resolverMetadataProp = Symbol("metadata");
@@ -32,10 +33,15 @@ export function createResolvers(
   }
 ) {
   const ensure = ensureImplements(metadata);
+  const normalizedModuleMiddlewareMap = normalizeResolveMiddlewareMap(
+    config.resolveMiddlewares
+  );
   const middlewareMap = mergeNormalizedResolveMiddlewareMaps(
     app.resolveMiddlewareMap,
-    normalizeResolveMiddlewareMap(config.resolveMiddlewares)
+    normalizedModuleMiddlewareMap
   );
+
+  validateResolveMiddlewareMap(normalizedModuleMiddlewareMap, metadata);
 
   const resolvers = mergeResolvers(config);
 
