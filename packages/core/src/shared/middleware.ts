@@ -1,7 +1,9 @@
 import { GraphQLResolveInfo } from "graphql";
 import { mergeDeepWith } from "ramda";
+import { ModuleMetadata } from "./../module/metadata";
 import { ModuleContext } from "../module/module";
 import { isDefined } from "./utils";
+import { ExtraMiddlewareError, useLocation } from "./errors";
 
 export type Next<T = any> = () => Promise<T>;
 
@@ -178,4 +180,54 @@ function pickResolveMiddlewares(
   }
 
   return middlewares.filter(isDefined);
+}
+
+export function validateResolveMiddlewareMap(
+  middlewareMap: NormalizedResolveMiddlewareMap,
+  metadata: ModuleMetadata
+) {
+  const exists = checkExistence(metadata);
+
+  for (const typeName in middlewareMap.types) {
+    if (middlewareMap.types.hasOwnProperty(typeName)) {
+      const typeMiddlewareMap = middlewareMap.types[typeName];
+
+      if (!exists.type(typeName)) {
+        throw new ExtraMiddlewareError(
+          `Cannot apply a middleware to non existing "${typeName}" type`,
+          useLocation({ dirname: metadata.dirname, id: metadata.id })
+        );
+      }
+
+      for (const fieldName in typeMiddlewareMap.fields) {
+        if (typeMiddlewareMap.fields.hasOwnProperty(fieldName)) {
+          if (!exists.field(typeName, fieldName)) {
+            throw new ExtraMiddlewareError(
+              `Cannot apply a middleware to non existing "${typeName}.${fieldName}" type.field`,
+              useLocation({ dirname: metadata.dirname, id: metadata.id })
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Helps to make sure a middleware has a corresponding type/field definition.
+ * We don't want to pass a module-level middlewares that are not related to the module.
+ * Not because it's dangerous but to prevent unused middlewares.
+ */
+function checkExistence(metadata: ModuleMetadata) {
+  return {
+    type(name: string) {
+      return isDefined(metadata.implements?.[name] || metadata.extends?.[name]);
+    },
+    field(type: string, name: string) {
+      return isDefined(
+        metadata.implements?.[type]?.includes(name) ||
+          metadata.extends?.[type]?.includes(name)
+      );
+    },
+  };
 }

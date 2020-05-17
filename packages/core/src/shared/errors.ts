@@ -16,6 +16,14 @@ export class ExtraResolverError extends ExtendableBuiltin(Error) {
   }
 }
 
+export class ExtraMiddlewareError extends ExtendableBuiltin(Error) {
+  constructor(message: string, ...rest: string[]) {
+    super(composeMessage(message, ...rest));
+    this.name = this.constructor.name;
+    this.message = composeMessage(message, ...rest);
+  }
+}
+
 export class ResolverDuplicatedError extends ExtendableBuiltin(Error) {
   constructor(message: string, ...rest: string[]) {
     super(composeMessage(message, ...rest));
@@ -39,7 +47,7 @@ export function useLocation({ dirname, id }: { id: ID; dirname?: string }) {
     ? `Module "${id}" located at ${dirname}`
     : [
         `Module "${id}"`,
-        `Hint: pass __dirname to "dirname" option of your modules to get more insightful errors :)`,
+        `Hint: pass __dirname to "dirname" option of your modules to get more insightful errors`,
       ].join("\n");
 }
 
