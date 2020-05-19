@@ -13,7 +13,7 @@
     "build": "tsc --project tsconfig.json && bob build",
     "test": "jest",
     "format": "prettier --write \"packages/**/*.{js,json,css,md,ts,tsx}\"",
-    "benchmark:basic": "ts-node --project tsconfig.app.json benchmark/basic.case.ts",
+    "benchmark:basic": "NODE_ENV=production ts-node --project tsconfig.app.json benchmark/basic.case.ts",
     "example:basic": "ts-node --project tsconfig.app.json examples/basic/src/index.ts",
     "example:basic:inspect": "TS_NODE_PROJECT=tsconfig.app.json node --inspect -r ts-node/register examples/basic/src/index.ts",
     "loadtest:basic": "artillery run examples/basic/artillery.yml"

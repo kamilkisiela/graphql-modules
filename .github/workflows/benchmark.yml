@@ -11,6 +11,7 @@ jobs:
         node_version: [10, 12, 14]
     env:
       CI: true
+      NODE_ENV: production
 
     steps:
       - uses: actions/checkout@v1
