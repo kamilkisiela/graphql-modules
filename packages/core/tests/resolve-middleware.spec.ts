@@ -1,27 +1,8 @@
 import {
-  normalizeResolveMiddlewareMap,
-  mergeNormalizedResolveMiddlewareMaps,
+  mergeResolveMiddlewareMaps,
   createResolveMiddleware,
   ResolveMiddleware,
 } from "../src/shared/middleware";
-
-test('should treat "*" as middleware applied to all resolvers', () => {
-  const fn: ResolveMiddleware = async () => {};
-  const normalized = normalizeResolveMiddlewareMap({
-    "*": [fn],
-  });
-
-  expect(normalized.__any).toContain(fn);
-});
-
-test('should throw on "*.anything"', () => {
-  const fn: ResolveMiddleware = async () => {};
-  expect(() => {
-    normalizeResolveMiddlewareMap({
-      "*.something": [fn],
-    });
-  }).toThrow();
-});
 
 test("should pick __any middlewares before field and before type", async () => {
   const order: string[] = [];
@@ -33,13 +14,17 @@ test("should pick __any middlewares before field and before type", async () => {
     };
   }
 
-  const normalized = normalizeResolveMiddlewareMap({
-    "*": [createFn("*")],
-    "Query.*": [createFn("Query.*")],
-    "Query.foo": [createFn("Query.foo")],
-  });
+  const map = {
+    "*": {
+      "*": [createFn("*")],
+    },
+    Query: {
+      "*": [createFn("Query.*")],
+      foo: [createFn("Query.foo")],
+    },
+  };
 
-  const middleware = createResolveMiddleware(["Query", "foo"], normalized);
+  const middleware = createResolveMiddleware(["Query", "foo"], map);
 
   await middleware(
     {
@@ -55,9 +40,11 @@ test("should pick __any middlewares before field and before type", async () => {
 });
 
 test("middleware should intercept the resolve result", async () => {
-  const normalized = normalizeResolveMiddlewareMap({
-    "*": [async () => "intercepted"],
-  });
+  const normalized = {
+    "*": {
+      "*": [async () => "intercepted"],
+    },
+  };
 
   const middleware = createResolveMiddleware(["Query", "foo"], normalized);
 
@@ -75,13 +62,15 @@ test("middleware should intercept the resolve result", async () => {
 });
 
 test("middleware should intercept the resolve function with an error", async () => {
-  const normalized = normalizeResolveMiddlewareMap({
-    "*": [
-      async () => {
-        throw new Error("intercepted");
-      },
-    ],
-  });
+  const normalized = {
+    "*": {
+      "*": [
+        async () => {
+          throw new Error("intercepted");
+        },
+      ],
+    },
+  };
 
   const middleware = createResolveMiddleware(["Query", "foo"], normalized);
 
@@ -112,19 +101,27 @@ test("should put app first when merging", async () => {
     };
   }
 
-  const app = normalizeResolveMiddlewareMap({
-    "*": [createFn("app - *")],
-    "Query.*": [createFn("app - Query.*")],
-    "Query.foo": [createFn("app - Query.foo")],
-  });
+  const app = {
+    "*": {
+      "*": [createFn("app - *")],
+    },
+    Query: {
+      "*": [createFn("app - Query.*")],
+      foo: [createFn("app - Query.foo")],
+    },
+  };
 
-  const mod = normalizeResolveMiddlewareMap({
-    "*": [createFn("mod - *")],
-    "Query.*": [createFn("mod - Query.*")],
-    "Query.foo": [createFn("mod - Query.foo")],
-  });
+  const mod = {
+    "*": {
+      "*": [createFn("mod - *")],
+    },
+    Query: {
+      "*": [createFn("mod - Query.*")],
+      foo: [createFn("mod - Query.foo")],
+    },
+  };
 
-  const merged = mergeNormalizedResolveMiddlewareMaps(app, mod);
+  const merged = mergeResolveMiddlewareMaps(app, mod);
 
   const middleware = createResolveMiddleware(["Query", "foo"], merged);
 

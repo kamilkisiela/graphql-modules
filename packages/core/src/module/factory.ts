@@ -8,11 +8,11 @@ import { metadataFactory } from "./metadata";
 import { createResolvers } from "./resolvers";
 import { createTypeDefs } from "./type-defs";
 import { MODULE_ID } from "../app/tokens";
-import { NormalizedResolveMiddlewareMap } from "../shared/middleware";
+import { ResolveMiddlewareMap } from "../shared/middleware";
 
 export type ModuleFactory = (app: {
   injector: ReflectiveInjector;
-  resolveMiddlewares: NormalizedResolveMiddlewareMap;
+  resolveMiddlewares: ResolveMiddlewareMap;
 }) => ResolvedGraphQLModule;
 
 export function moduleFactory(config: ModuleConfig): GraphQLModule {

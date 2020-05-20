@@ -68,22 +68,15 @@ export type ResolveMiddleware<
   TContext extends ModuleContext = ModuleContext
 > = (context: ResolveMiddlewareContext<TContext>, next: Next) => Promise<any>;
 
-export type ResolveMiddlewareMap = Record<string, Array<ResolveMiddleware>>;
-export interface NormalizedResolveMiddlewareMap {
-  __any?: ResolveMiddleware[];
-  types: {
-    [type: string]: {
-      __any?: ResolveMiddleware[];
-      fields: {
-        [field: string]: ResolveMiddleware[];
-      };
-    };
+export type ResolveMiddlewareMap = {
+  [type: string]: {
+    [field: string]: ResolveMiddleware[];
   };
-}
+};
 
 export function createResolveMiddleware(
   path: string[],
-  middlewareMap?: NormalizedResolveMiddlewareMap
+  middlewareMap?: ResolveMiddlewareMap
 ) {
   const middlewares = middlewareMap
     ? pickResolveMiddlewares(path, middlewareMap)
@@ -92,10 +85,10 @@ export function createResolveMiddleware(
   return compose<ResolveMiddlewareContext>(middlewares);
 }
 
-export function mergeNormalizedResolveMiddlewareMaps(
-  app: NormalizedResolveMiddlewareMap,
-  mod: NormalizedResolveMiddlewareMap
-): NormalizedResolveMiddlewareMap {
+export function mergeResolveMiddlewareMaps(
+  app: ResolveMiddlewareMap,
+  mod: ResolveMiddlewareMap
+): ResolveMiddlewareMap {
   const merge = (left: any, right: any): any => {
     return mergeDeepWith(
       (l, r) => {
@@ -112,70 +105,27 @@ export function mergeNormalizedResolveMiddlewareMaps(
   return merge(app, mod);
 }
 
-export function normalizeResolveMiddlewareMap(
-  middlewaresMap?: ResolveMiddlewareMap
-): NormalizedResolveMiddlewareMap {
-  const normalized: NormalizedResolveMiddlewareMap = {
-    types: {},
-  };
-
-  for (const pattern in middlewaresMap) {
-    if (middlewaresMap.hasOwnProperty(pattern)) {
-      const middlewares = middlewaresMap[pattern];
-
-      const [type, field] = pattern.split(".");
-
-      if (type === "*") {
-        normalized.__any = middlewares;
-
-        if (typeof field === "string") {
-          throw new Error(
-            `Pattern "${pattern}" is not allowed. Use "*" instead`
-          );
-        }
-
-        continue;
-      }
-
-      if (!normalized.types[type]) {
-        normalized.types[type] = {
-          fields: {},
-        };
-      }
-
-      if (field === "*") {
-        normalized.types[type].__any = middlewares;
-        continue;
-      }
-
-      normalized.types[type].fields[field] = middlewares;
-    }
-  }
-
-  return normalized;
-}
-
 function pickResolveMiddlewares(
   path: string[],
-  middlewareMap: NormalizedResolveMiddlewareMap
+  middlewareMap: ResolveMiddlewareMap
 ) {
   const middlewares: ResolveMiddleware[] = [];
 
   const [type, field] = path;
 
-  if (middlewareMap.__any) {
-    middlewares.push(...middlewareMap.__any);
+  if (middlewareMap["*"]?.["*"]) {
+    middlewares.push(...middlewareMap["*"]["*"]);
   }
 
-  const typeMap = middlewareMap.types[type];
+  const typeMap = middlewareMap[type];
 
   if (typeMap) {
-    if (typeMap.__any) {
-      middlewares.push(...typeMap.__any);
+    if (typeMap["*"]) {
+      middlewares.push(...typeMap["*"]);
     }
 
-    if (field && typeMap.fields[field]) {
-      middlewares.push(...typeMap.fields[field]);
+    if (field && typeMap[field]) {
+      middlewares.push(...typeMap[field]);
     }
   }
 
@@ -183,14 +133,14 @@ function pickResolveMiddlewares(
 }
 
 export function validateResolveMiddlewareMap(
-  middlewareMap: NormalizedResolveMiddlewareMap,
+  middlewareMap: ResolveMiddlewareMap,
   metadata: ModuleMetadata
 ) {
   const exists = checkExistence(metadata);
 
   for (const typeName in middlewareMap.types) {
     if (middlewareMap.types.hasOwnProperty(typeName)) {
-      const typeMiddlewareMap = middlewareMap.types[typeName];
+      const typeMiddlewareMap = middlewareMap[typeName];
 
       if (!exists.type(typeName)) {
         throw new ExtraMiddlewareError(
@@ -199,8 +149,8 @@ export function validateResolveMiddlewareMap(
         );
       }
 
-      for (const fieldName in typeMiddlewareMap.fields) {
-        if (typeMiddlewareMap.fields.hasOwnProperty(fieldName)) {
+      for (const fieldName in typeMiddlewareMap[typeName]) {
+        if (typeMiddlewareMap[typeName].hasOwnProperty(fieldName)) {
           if (!exists.field(typeName, fieldName)) {
             throw new ExtraMiddlewareError(
               `Cannot apply a middleware to non existing "${typeName}.${fieldName}" type.field`,

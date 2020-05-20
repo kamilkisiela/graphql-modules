@@ -13,9 +13,8 @@ import {
 import { isNil, isDefined, isPrimitive } from "../shared/utils";
 import {
   createResolveMiddleware,
-  normalizeResolveMiddlewareMap,
-  mergeNormalizedResolveMiddlewareMaps,
-  NormalizedResolveMiddlewareMap,
+  mergeResolveMiddlewareMaps,
+  ResolveMiddlewareMap,
   validateResolveMiddlewareMap,
 } from "../shared/middleware";
 
@@ -29,14 +28,12 @@ export function createResolvers(
   config: ModuleConfig,
   metadata: ModuleMetadata,
   app: {
-    resolveMiddlewareMap: NormalizedResolveMiddlewareMap;
+    resolveMiddlewareMap: ResolveMiddlewareMap;
   }
 ) {
   const ensure = ensureImplements(metadata);
-  const normalizedModuleMiddlewareMap = normalizeResolveMiddlewareMap(
-    config.resolveMiddlewares
-  );
-  const middlewareMap = mergeNormalizedResolveMiddlewareMaps(
+  const normalizedModuleMiddlewareMap = config.resolveMiddlewares || {};
+  const middlewareMap = mergeResolveMiddlewareMaps(
     app.resolveMiddlewareMap,
     normalizedModuleMiddlewareMap
   );
@@ -117,7 +114,7 @@ function wrapResolver({
   middlewareMap,
 }: {
   resolver: ResolveFn<any>;
-  middlewareMap: NormalizedResolveMiddlewareMap;
+  middlewareMap: ResolveMiddlewareMap;
   config: ModuleConfig;
   path: string[];
 }) {

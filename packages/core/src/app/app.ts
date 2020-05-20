@@ -24,10 +24,7 @@ import { Resolvers } from "../module/types";
 import { ID, Single, Maybe, PromiseOrValue } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
 import { flatten, isDefined } from "../shared/utils";
-import {
-  ResolveMiddlewareMap,
-  normalizeResolveMiddlewareMap,
-} from "../shared/middleware";
+import { ResolveMiddlewareMap } from "../shared/middleware";
 
 type Execution = {
   (args: ExecutionArgs): PromiseOrValue<ExecutionResult>;
@@ -90,9 +87,7 @@ export function createApp(config: AppConfig): GraphQLApp {
   // Filter Operation-scoped providers, and keep it here
   // so we don't do it over and over again
   const appOperationProviders = onlyOperationProviders(config.providers);
-  const resolveMiddlewareMap = normalizeResolveMiddlewareMap(
-    config.resolveMiddlewares
-  );
+  const resolveMiddlewareMap = config.resolveMiddlewares || {};
 
   // Instantiate all providers
   // Happens only once, on app creation
@@ -253,7 +248,6 @@ export function createApp(config: AppConfig): GraphQLApp {
               fieldResolver,
               typeResolver,
             };
-
 
         // It's important to wrap the executeFn within a promise
         // so we can easily control the end of execution (with finally)
