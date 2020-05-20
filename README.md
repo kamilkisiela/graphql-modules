@@ -1,16 +1,25 @@
 # Proposal of new GraphQL Modules
 
-A less stricter version of GraphQL Modules.
+A less strict version of GraphQL Modules.
 
 ## Key features
 
-- Global Injector + Module Injector (with fallback to global tokens)
-- Metadata with things like information about implemented types and extensions, providers and resolvers (easy to integrate Codegen and Inspector)
-- No dependencies between modules (GraphQL-JS does the validation)
-- No scoped context, one context for all modules
-- Focused on Developer Experience and Team-based workflow
-- Each resolver has metadata attached. If something goes wrong we know which module owns the resolver.
+- Application Injector + Module Injector (with fallback to application-level tokens).
+- Metadata with things like information about implemented types and extensions, providers and resolvers.
+- No dependencies between modules (GraphQL-JS does the validation).
+- No scoped context, one context for all modules (things done in context can be easily done with DI).
+- Each resolver has metadata. If something goes wrong we know which module owns the resolver.
 - Validation of missing tokens at runtime, right when creating a module and application
+- Focused on Developer Experience and Team-based workflow
+
+## Flat Structure
+
+![](./assets/flat-structure.png)
+
+## Dependency Injection
+
+![](./assets/di.png)
+
 
 ## Developer Experience
 
