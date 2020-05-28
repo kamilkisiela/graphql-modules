@@ -134,7 +134,7 @@ export function createApp(config: AppConfig): GraphQLApp {
     // As the name of the Injector says, it's an Operation scoped Injector
     // Application level
     // Operation scoped - means it's created and destroyed on every GraphQL Operation
-    const appContextInjector = ReflectiveInjector.create(
+    const operationAppInjector = ReflectiveInjector.create(
       "App (Operation Scope)",
       appOperationProviders.concat({
         provide: CONTEXT,
@@ -144,7 +144,7 @@ export function createApp(config: AppConfig): GraphQLApp {
     );
 
     // Track Providers with OnDestroy hooks
-    registerProvidersToDestroy(appContextInjector);
+    registerProvidersToDestroy(operationAppInjector);
 
     return {
       onDestroy: once(() => {
@@ -160,7 +160,7 @@ export function createApp(config: AppConfig): GraphQLApp {
       context: {
         // We want to pass the received context
         ...(context || {}),
-        // Here's something vert crutial
+        // Here's something very crutial
         // It's a function that is used in module's context creation
         ɵgetModuleContext(moduleId, ctx) {
           // Reuse a context or create if not available
@@ -168,20 +168,20 @@ export function createApp(config: AppConfig): GraphQLApp {
             // We're interested in operation-scoped providers only
             const providers = moduleMap.get(moduleId)?.operationProviders!;
             // Module-level Singleton Injector
-            const moduleInjector = moduleMap.get(moduleId)!.injector;
+            const singletonModuleInjector = moduleMap.get(moduleId)!.injector;
 
-            (moduleInjector as any)._parent = singletonAppProxyInjector;
+            (singletonModuleInjector as any)._parent = singletonAppProxyInjector;
 
             // It's very important to recreate a Singleton Injector
             // and add an execution context getter function
             // We do this so Singleton provider can access the ExecutionContext via Proxy
-            const singletonModuleInjector = ReflectiveInjector.createWithExecutionContext(
-              moduleInjector,
+            const singletonModuleProxyInjector = ReflectiveInjector.createWithExecutionContext(
+              singletonModuleInjector,
               () => contextCache[moduleId]
             );
 
             // Create module-level Operation-scoped Injector
-            const moduleContextInjector = ReflectiveInjector.create(
+            const operationModuleInjector = ReflectiveInjector.create(
               `Module "${moduleId}" (Operation Scope)`,
               providers.concat([
                 {
@@ -190,17 +190,17 @@ export function createApp(config: AppConfig): GraphQLApp {
                 },
               ]),
               // This injector has a priority
-              singletonModuleInjector,
+              singletonModuleProxyInjector,
               // over this one
-              appContextInjector
+              operationAppInjector
             );
 
             // Same as on application level, we need to collect providers with OnDestroy hooks
-            registerProvidersToDestroy(moduleContextInjector);
+            registerProvidersToDestroy(operationModuleInjector);
 
             contextCache[moduleId] = {
               ...ctx,
-              injector: moduleContextInjector,
+              injector: operationModuleInjector,
               moduleId,
             };
           }
@@ -231,14 +231,14 @@ export function createApp(config: AppConfig): GraphQLApp {
       ) => {
         // Create an subscription context
         const { context, onDestroy } = contextBuilder(
-          isSubscriptionArgs(argsOrSchema)
+          isNotSchema<SubscriptionArgs>(argsOrSchema)
             ? argsOrSchema.contextValue
             : contextValue
         );
 
-        const subscriptionArgs: SubscriptionArgs = isSubscriptionArgs(
-          argsOrSchema
-        )
+        const subscriptionArgs: SubscriptionArgs = isNotSchema<
+          SubscriptionArgs
+        >(argsOrSchema)
           ? {
               ...argsOrSchema,
               contextValue: context,
@@ -290,12 +290,14 @@ export function createApp(config: AppConfig): GraphQLApp {
       ) => {
         // Create an execution context
         const { context, onDestroy } = contextBuilder(
-          isExecutionArgs(argsOrSchema)
+          isNotSchema<ExecutionArgs>(argsOrSchema)
             ? argsOrSchema.contextValue
             : contextValue
         );
 
-        const executionArgs: ExecutionArgs = isExecutionArgs(argsOrSchema)
+        const executionArgs: ExecutionArgs = isNotSchema<ExecutionArgs>(
+          argsOrSchema
+        )
           ? {
               ...argsOrSchema,
               contextValue: context,
@@ -351,10 +353,6 @@ function createModuleMap(modules: ResolvedGraphQLModule[]): ModulesMap {
   return moduleMap;
 }
 
-function isExecutionArgs(obj: any): obj is ExecutionArgs {
-  return obj instanceof GraphQLSchema === false;
-}
-
-function isSubscriptionArgs(obj: any): obj is SubscriptionArgs {
+function isNotSchema<T>(obj: any): obj is T {
   return obj instanceof GraphQLSchema === false;
 }
