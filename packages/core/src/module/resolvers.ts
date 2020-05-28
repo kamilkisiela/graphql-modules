@@ -47,7 +47,11 @@ export function createResolvers(
     if (resolvers.hasOwnProperty(typeName)) {
       const obj = resolvers[typeName];
 
-      if (isObjectResolver(obj)) {
+      if (isScalarResolver(obj)) {
+        continue;
+      } else if (isEnumResolver(obj)) {
+        continue;
+      } else if (isObjectResolver(obj)) {
         for (const fieldName in obj) {
           if (obj.hasOwnProperty(fieldName)) {
             ensure.type(typeName, fieldName);

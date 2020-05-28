@@ -21,3 +21,63 @@ export function isPrimitive(
     typeof val
   );
 }
+
+export function isAsyncIterable(obj: any): obj is AsyncIterableIterator<any> {
+  return obj && typeof obj[Symbol.asyncIterator] === "function";
+}
+
+export default function tapAsyncIterator<T>(
+  iterable: AsyncIterable<T>,
+  doneCallback: () => void
+): AsyncGenerator<T> {
+  const iteratorMethod = iterable[Symbol.asyncIterator];
+  const iterator = iteratorMethod.call(iterable);
+
+  function mapResult(result: IteratorResult<T, any>) {
+    if (result.done) {
+      doneCallback();
+    }
+
+    return result;
+  }
+
+  return {
+    async next() {
+      try {
+        let result = await iterator.next();
+        return mapResult(result);
+      } catch (error) {
+        doneCallback();
+        throw error;
+      }
+    },
+    async return() {
+      try {
+        const result = await iterator.return!();
+
+        return mapResult(result);
+      } catch (error) {
+        doneCallback();
+        throw error;
+      }
+    },
+    async throw(error) {
+      doneCallback();
+      return iterator.throw!(error);
+    },
+    [Symbol.asyncIterator]() {
+      return this;
+    },
+  };
+}
+
+export function once(cb: () => void) {
+  let called = false;
+
+  return () => {
+    if (!called) {
+      called = true;
+      cb();
+    }
+  };
+}

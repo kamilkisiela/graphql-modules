@@ -6,49 +6,39 @@ import {
 } from "@graphql-modules/di";
 import {
   execute,
+  subscribe,
   DocumentNode,
   GraphQLSchema,
   ExecutionArgs,
-  ExecutionResult,
+  SubscriptionArgs,
   GraphQLFieldResolver,
   GraphQLTypeResolver,
 } from "graphql";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import { REQUEST, RESPONSE } from "./tokens";
 import {
   ModuleContext,
   GraphQLModule,
   ResolvedGraphQLModule,
 } from "../module/module";
 import { Resolvers } from "../module/types";
-import { ID, Single, Maybe, PromiseOrValue } from "../shared/types";
+import { ID, Single, Maybe } from "../shared/types";
 import { ModuleDuplicatedError } from "../shared/errors";
-import { flatten, isDefined } from "../shared/utils";
+import tapAsyncIterator, {
+  flatten,
+  isDefined,
+  isAsyncIterable,
+  once,
+} from "../shared/utils";
 import { ResolveMiddlewareMap } from "../shared/middleware";
+import { CONTEXT } from "./tokens";
 
-type Execution = {
-  (args: ExecutionArgs): PromiseOrValue<ExecutionResult>;
-  (
-    schema: GraphQLSchema,
-    document: DocumentNode,
-    rootValue?: any,
-    contextValue?: any,
-    variableValues?: Maybe<{ [key: string]: any }>,
-    operationName?: Maybe<string>,
-    fieldResolver?: Maybe<GraphQLFieldResolver<any, any>>,
-    typeResolver?: Maybe<GraphQLTypeResolver<any, any>>
-  ): PromiseOrValue<ExecutionResult>;
-};
+type Execution = typeof execute;
+type Subscription = typeof subscribe;
 
 type ExecutionContextBuilder<
   TContext extends {
-    request: any;
-    response?: any;
     [key: string]: any;
-  } = {
-    request: any;
-    response?: any;
-  }
+  } = {}
 > = (
   context: TContext
 ) => {
@@ -60,12 +50,13 @@ export type GraphQLApp = {
   readonly typeDefs: DocumentNode[];
   readonly resolvers?: Single<Resolvers>;
   readonly schema: GraphQLSchema;
+  createSubscription(options?: { subscribe?: typeof subscribe }): Subscription;
   createExecution(options?: { execute?: typeof execute }): Execution;
 };
 
 export interface AppConfig {
   modules: GraphQLModule[];
-  providers?: Provider[];
+  providers?: Provider[] | (() => Provider[]);
   resolveMiddlewares?: ResolveMiddlewareMap;
 }
 
@@ -79,14 +70,18 @@ export interface InternalAppContext {
 }
 
 export function createApp(config: AppConfig): GraphQLApp {
+  const providers =
+    config.providers && typeof config.providers === "function"
+      ? config.providers()
+      : config.providers;
   // Creates an Injector with singleton classes at application level
   const appInjector = ReflectiveInjector.create(
     "App (Singleton Scope)",
-    onlySingletonProviders(config.providers)
+    onlySingletonProviders(providers)
   );
   // Filter Operation-scoped providers, and keep it here
   // so we don't do it over and over again
-  const appOperationProviders = onlyOperationProviders(config.providers);
+  const appOperationProviders = onlyOperationProviders(providers);
   const resolveMiddlewareMap = config.resolveMiddlewares || {};
 
   // Instantiate all providers
@@ -112,7 +107,7 @@ export function createApp(config: AppConfig): GraphQLApp {
   // It has to run on every operation.
   const contextBuilder: ExecutionContextBuilder = (context) => {
     // Cache for context per module
-    const contextCache: Record<ID, ModuleContext> = {};
+    let contextCache: Record<ID, ModuleContext> = {};
     // A list of providers with OnDestroy hooks
     // It's a tuple because we want to know which Injector controls the provider
     // and we want to know if the provider was even instantiated.
@@ -128,31 +123,31 @@ export function createApp(config: AppConfig): GraphQLApp {
       });
     }
 
+    // It's very important to recreate a Singleton Injector
+    // and add an execution context getter function
+    // We do this so Singleton provider can access the ExecutionContext via Proxy
+    const singletonAppProxyInjector = ReflectiveInjector.createWithExecutionContext(
+      appInjector,
+      () => context
+    );
+
     // As the name of the Injector says, it's an Operation scoped Injector
     // Application level
     // Operation scoped - means it's created and destroyed on every GraphQL Operation
     const appContextInjector = ReflectiveInjector.create(
       "App (Operation Scope)",
-      appOperationProviders.concat(
-        {
-          // Make request object accessible through REQUEST injection token
-          provide: REQUEST,
-          useValue: context.request,
-        },
-        {
-          // Make response object accessible through RESPONSE injection token
-          provide: RESPONSE,
-          useValue: context.response,
-        } // TODO: We may want to add a subscription here or even remove REQUEST and RESPONSE, we will see
-      ),
-      appInjector
+      appOperationProviders.concat({
+        provide: CONTEXT,
+        useValue: context,
+      }),
+      singletonAppProxyInjector
     );
 
     // Track Providers with OnDestroy hooks
     registerProvidersToDestroy(appContextInjector);
 
     return {
-      onDestroy() {
+      onDestroy: once(() => {
         providersToDestroy.forEach(([injector, keyId]) => {
           // If provider was instantiated
           if (injector._isObjectDefinedByKeyId(keyId)) {
@@ -160,7 +155,8 @@ export function createApp(config: AppConfig): GraphQLApp {
             injector._getObjByKeyId(keyId).onDestroy();
           }
         });
-      },
+        contextCache = {};
+      }),
       context: {
         // We want to pass the received context
         ...(context || {}),
@@ -174,6 +170,8 @@ export function createApp(config: AppConfig): GraphQLApp {
             // Module-level Singleton Injector
             const moduleInjector = moduleMap.get(moduleId)!.injector;
 
+            (moduleInjector as any)._parent = singletonAppProxyInjector;
+
             // It's very important to recreate a Singleton Injector
             // and add an execution context getter function
             // We do this so Singleton provider can access the ExecutionContext via Proxy
@@ -185,7 +183,12 @@ export function createApp(config: AppConfig): GraphQLApp {
             // Create module-level Operation-scoped Injector
             const moduleContextInjector = ReflectiveInjector.create(
               `Module "${moduleId}" (Operation Scope)`,
-              providers,
+              providers.concat([
+                {
+                  provide: CONTEXT,
+                  useValue: context,
+                },
+              ]),
               // This injector has a priority
               singletonModuleInjector,
               // over this one
@@ -212,8 +215,67 @@ export function createApp(config: AppConfig): GraphQLApp {
     typeDefs,
     resolvers,
     schema,
+    createSubscription(options): Subscription {
+      // Custom or original subscribe function
+      const subscribeFn = options?.subscribe || subscribe;
+
+      return (
+        argsOrSchema: SubscriptionArgs | GraphQLSchema,
+        document?: DocumentNode,
+        rootValue?: any,
+        contextValue?: any,
+        variableValues?: Maybe<{ [key: string]: any }>,
+        operationName?: Maybe<string>,
+        fieldResolver?: Maybe<GraphQLFieldResolver<any, any>>,
+        subscribeFieldResolver?: Maybe<GraphQLFieldResolver<any, any>>
+      ) => {
+        // Create an subscription context
+        const { context, onDestroy } = contextBuilder(
+          isSubscriptionArgs(argsOrSchema)
+            ? argsOrSchema.contextValue
+            : contextValue
+        );
+
+        const subscriptionArgs: SubscriptionArgs = isSubscriptionArgs(
+          argsOrSchema
+        )
+          ? {
+              ...argsOrSchema,
+              contextValue: context,
+            }
+          : {
+              schema: argsOrSchema,
+              document: document!,
+              rootValue,
+              contextValue: context,
+              variableValues,
+              operationName,
+              fieldResolver,
+              subscribeFieldResolver,
+            };
+
+        let isIterable = false;
+
+        // It's important to wrap the subscribeFn within a promise
+        // so we can easily control the end of subscription (with finally)
+        return Promise.resolve()
+          .then(() => subscribeFn(subscriptionArgs))
+          .then((sub) => {
+            if (isAsyncIterable(sub)) {
+              isIterable = true;
+              return tapAsyncIterator(sub, onDestroy);
+            }
+            return sub;
+          })
+          .finally(() => {
+            if (!isIterable) {
+              onDestroy();
+            }
+          });
+      };
+    },
     createExecution(options): Execution {
-      // Custom or original exection function
+      // Custom or original execute function
       const executeFn = options?.execute || execute;
 
       return (
@@ -290,5 +352,9 @@ function createModuleMap(modules: ResolvedGraphQLModule[]): ModulesMap {
 }
 
 function isExecutionArgs(obj: any): obj is ExecutionArgs {
+  return obj instanceof GraphQLSchema === false;
+}
+
+function isSubscriptionArgs(obj: any): obj is SubscriptionArgs {
   return obj instanceof GraphQLSchema === false;
 }

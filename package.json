@@ -24,18 +24,23 @@
     "@types/jest": "25.2.2",
     "@types/node": "14.0.1",
     "@types/ramda": "0.27.4",
+    "apollo-server-core": "https://71515-56760633-gh.circle-artifacts.com/0/packed/apollo-server-core/apollo-server-core-2.13.1.tgz",
+    "apollo-server-express": "2.13.1",
     "artillery": "1.6.0",
     "benchmark": "2.1.4",
     "bob-the-bundler": "1.0.0-rc.14",
     "dataloader": "2.0.0",
     "express": "4.17.1",
-    "express-graphql": "0.9.0",
     "graphql": "15.0.0",
+    "graphql-subscriptions": "1.1.0",
     "jest": "26.0.1",
     "prettier": "2.0.5",
     "reflect-metadata": "0.1.13",
     "ts-jest": "25.5.1",
     "ts-node": "8.10.1",
     "typescript": "3.9.2"
+  },
+  "resolutions": {
+    "**/apollo-server-core": "https://71515-56760633-gh.circle-artifacts.com/0/packed/apollo-server-core/apollo-server-core-2.13.1.tgz"
   }
 }

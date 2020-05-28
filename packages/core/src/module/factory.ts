@@ -18,12 +18,13 @@ export type ModuleFactory = (app: {
 export function moduleFactory(config: ModuleConfig): GraphQLModule {
   const typeDefs = createTypeDefs(config);
   const metadata = metadataFactory(typeDefs, config);
+  const providers = typeof config.providers === 'function' ? config.providers() : config.providers;
 
   const mod: GraphQLModule = {
     id: config.id,
     metadata,
     typeDefs,
-    providers: config.providers,
+    providers,
     // Factory is called once on application creation,
     // before we even handle GraphQL Operation
     factory(app) {
@@ -33,10 +34,10 @@ export function moduleFactory(config: ModuleConfig): GraphQLModule {
       // so we don't do this filtering multiple times.
       // Providers don't change over time, so it's safe to do it.
       resolvedModule.operationProviders = onlyOperationProviders(
-        config.providers
+        providers
       );
       resolvedModule.singletonProviders = onlySingletonProviders(
-        config.providers
+        providers
       );
 
       // Create a  module-level Singleton injector

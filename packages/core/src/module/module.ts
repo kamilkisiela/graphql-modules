@@ -12,7 +12,7 @@ export interface ModuleConfig {
   typeDefs: TypeDefs;
   resolvers?: Resolvers;
   resolveMiddlewares?: ResolveMiddlewareMap;
-  providers?: Provider[];
+  providers?: Provider[] | (() => Provider[]);
 }
 
 export type ModuleContext<T = {}> = {

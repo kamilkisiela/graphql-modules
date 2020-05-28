@@ -3,10 +3,12 @@ import {
   createApp,
   createModule,
   MODULE_ID,
+  CONTEXT,
   ModuleContext,
 } from "@graphql-modules/core";
 import {
   Injectable,
+  Inject,
   InjectionToken,
   Scope,
   ExecutionContext,
@@ -532,6 +534,115 @@ test("useFactory with dependecies", async () => {
 
   expect(result2.data).toEqual(data);
   expect(logSpy).toHaveBeenCalledTimes(2);
+});
+
+test("Use @Inject decorator in constructor", async () => {
+  const request = new Object();
+  const requestSpy = jest.fn();
+
+  @Injectable({ scope: Scope.Operation })
+  class Auth {
+    constructor(@Inject(CONTEXT) private context: any) {}
+
+    ping() {
+      requestSpy(this.context.request);
+
+      return "pong";
+    }
+  }
+
+  const mod = createModule({
+    id: "auth",
+    providers: [Auth],
+    typeDefs: /* GraphQL */ `
+      type Query {
+        ping: String
+      }
+    `,
+    resolvers: {
+      Query: {
+        ping(_: any, __: any, { injector }: ModuleContext) {
+          return injector.get(Auth).ping();
+        },
+      },
+    },
+  });
+
+  const app = createApp({ modules: [mod] });
+
+  const result = await app.createExecution()({
+    schema: app.schema,
+    contextValue: { request },
+    document: parse(/* GraphQL */ `
+      {
+        ping
+      }
+    `),
+  });
+
+  expect(result.errors).not.toBeDefined();
+  expect(result.data).toEqual({ ping: "pong" });
+  expect(requestSpy).toHaveBeenCalledWith(request);
+});
+
+test("Use useFactory with deps", async () => {
+  const request = new Object();
+  const requestSpy = jest.fn();
+  const REQUEST = new InjectionToken("request");
+
+  @Injectable({ scope: Scope.Operation })
+  class Auth {
+    constructor(@Inject(REQUEST) private request: any) {}
+
+    ping() {
+      requestSpy(this.request);
+
+      return "pong";
+    }
+  }
+
+  const mod = createModule({
+    id: "auth",
+    providers: [
+      Auth,
+      {
+        provide: REQUEST,
+        useFactory(ctx: any) {
+          return ctx.request;
+        },
+        deps: [CONTEXT],
+        scope: Scope.Operation,
+      },
+    ],
+    typeDefs: /* GraphQL */ `
+      type Query {
+        ping: String
+      }
+    `,
+    resolvers: {
+      Query: {
+        ping(_: any, __: any, { injector }: ModuleContext) {
+          return injector.get(Auth).ping();
+        },
+      },
+    },
+  });
+
+  const app = createApp({ modules: [mod] });
+
+  const result = await app.createExecution()({
+    schema: app.schema,
+    contextValue: { request },
+    document: parse(/* GraphQL */ `
+      {
+        ping
+      }
+    `),
+  });
+
+  expect(result.errors).not.toBeDefined();
+  expect(result.data).toEqual({ ping: "pong" });
+  expect(requestSpy).toHaveBeenCalledWith(request);
 });
 
 // test("testModule testing util", async () => {

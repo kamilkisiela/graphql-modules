@@ -1,9 +1,9 @@
-import { Type, ProviderOptions } from "./providers";
+import { Type, ProviderOptions, InjectionToken } from "./providers";
 
 export const INJECTABLE = Symbol("di:injectable");
 
 export interface InjectableParamMetadata {
-  type: Type<any>;
+  type: Type<any> | InjectionToken<any>;
   optional: boolean;
 }
 

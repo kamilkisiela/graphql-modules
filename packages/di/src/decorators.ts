@@ -1,4 +1,4 @@
-import { Type, ProviderOptions, isType } from "./providers";
+import { Type, ProviderOptions, isType, InjectionToken } from "./providers";
 import {
   INJECTABLE,
   InjectableMetadata,
@@ -16,10 +16,11 @@ export function Injectable(options?: ProviderOptions): ClassDecorator {
     const existingMeta = readInjectableMetadata(target as any);
 
     const meta: InjectableMetadata = {
-      params: params.map((param) => {
+      params: params.map((param, i) => {
+        const existingParam = existingMeta?.params?.[i];
         return {
-          type: param,
-          optional: false,
+          type: existingParam?.type || param,
+          optional: typeof existingParam?.optional === "boolean" ? existingParam.optional : false,
         };
       }),
       options: {
@@ -41,10 +42,15 @@ export function Optional(): ParameterDecorator {
   };
 }
 
-export function Inject(type: Type<any>): ParameterDecorator {
+export function Inject(type: Type<any> | InjectionToken<any>): ParameterDecorator {
   return (target, _, index) => {
+    ensureInjectableMetadata(target as any);
     const meta = readInjectableMetadata(target as any);
-    meta.params[index].type = type;
+
+    meta.params[index] = {
+      type,
+      optional: false,
+    };
   };
 }
 

@@ -15,6 +15,7 @@ import {
 const _THROW_IF_NOT_FOUND = new Object();
 export const THROW_IF_NOT_FOUND = _THROW_IF_NOT_FOUND;
 const UNDEFINED = new Object();
+const NOT_FOUND = new Object();
 
 // Publicly available Injector.
 // We use ReflectiveInjector everywhere
@@ -165,11 +166,13 @@ export class ReflectiveInjector implements Injector {
 
         inj = inj_._parent;
       }
+
+      return NOT_FOUND;
     }
 
     const resolvedValue = getObj();
 
-    if (resolvedValue) {
+    if (resolvedValue !== NOT_FOUND) {
       return resolvedValue;
     }
 
@@ -179,7 +182,7 @@ export class ReflectiveInjector implements Injector {
 
       const resolvedFallbackValue = getObj();
 
-      if (resolvedFallbackValue) {
+      if (resolvedFallbackValue !== NOT_FOUND) {
         return resolvedFallbackValue;
       }
     }

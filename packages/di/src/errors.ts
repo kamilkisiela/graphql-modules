@@ -1,5 +1,5 @@
 import { InjectableParamMetadata } from "./metadata";
-import { Type } from "./providers";
+import { Type, InjectionToken } from "./providers";
 import {
   stringify,
   wrappedError,
@@ -16,7 +16,7 @@ export function invalidProviderError(provider: any) {
 }
 
 export function noAnnotationError(
-  typeOrFunc: Type<any> | Function,
+  typeOrFunc: Type<any> | InjectionToken<any> | Function,
   params: InjectableParamMetadata[]
 ): Error {
   const signature: string[] = [];
@@ -87,7 +87,7 @@ export interface InjectionError extends Error {
   keys: Key[];
   injectors: ReflectiveInjector[];
   constructResolvingMessage: (this: InjectionError) => string;
-  addKey(injector: ReflectiveInjector, key: Key): void;
+  addKey(key: Key): void;
 }
 
 function injectionError(
@@ -101,7 +101,6 @@ function injectionError(
     : Error()) as InjectionError;
   error.addKey = addKey;
   error.keys = [key];
-  error.injectors = [injector];
   error.constructResolvingMessage = constructResolvingMessage;
   error.message =
     error.constructResolvingMessage() + ` - in ${injector.displayName}`;
@@ -133,10 +132,8 @@ function findFirstClosedCycle(keys: any[]): any[] {
 
 function addKey(
   this: InjectionError,
-  injector: ReflectiveInjector,
   key: Key
 ): void {
-  this.injectors.push(injector);
   this.keys.push(key);
   this.message = this.constructResolvingMessage();
 }
